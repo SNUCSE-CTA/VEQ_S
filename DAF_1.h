@@ -1033,6 +1033,11 @@ inline void BuildDAG(Graph& query) {
             DAG_parent_query[childNode][DAG_parent_query_size[childNode]] =
                 currNode;
             DAG_child_query_size[currNode]++;
+            // DAG_child_query[currNode] =
+            //     (int*)realloc(DAG_child_query[currNode],
+            //                   sizeof(int) * DAG_child_query_size[currNode]);
+            // DAG_child_query[currNode][DAG_child_query_size[currNode] - 1] =
+            //     childNode;
             DAG_parent_query_size[childNode]++;
           }
           {

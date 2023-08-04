@@ -85,8 +85,8 @@ inline void ProcessQuery() {
       filteringTime += TimeDiffInMilliseconds(startClock, endClock);
       if (!isCandidate) continue;
       ++nCandidate;
-// printDAG(*currQ);
-// printCS(*currQ);
+      // printDAG(*currQ);
+      // printCS(*currQ);
 #ifdef SUBGRAPH_MATCHING
       ComputeAuxiliaryDataStructureSize();
       cout << "Sum of |C(u)|: " << auxDataStructureSize << endl;

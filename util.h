@@ -1,9 +1,13 @@
-
+// Prints the DAG representation of a query graph.
+//
+// This function takes a query graph and prints
+// its DAG representation to the standard error stream.
+// It iterates through the vertices of the query graph,
+// displaying each vertex's label and its children in the DAG, if any.
 void printDAG(Graph& query) {
   cerr << "Query DAG" << endl;
   for (int i = 0; i < nQueryVertex; i++) {
     int u = uSequence[i];
-    // cerr<<"|C(u"<<u<<")|: "<<candSpace[u].size<<endl;
     cerr << "[" << i << "] l(u" << u << "): " << query.label[u] << ". Child(u"
          << u << "):";
     for (int j = 0; j < DAG_child_query_size[u]; j++) {
@@ -12,38 +16,14 @@ void printDAG(Graph& query) {
     cerr << endl;
   }
 }
-/*
-long long total_candidate_count = 0;
-long long getCandidateCount()
-{
-  long long sum = 0;
-  for(int i = 0; i < cnt_node_query; i++)
-  {
-    int currNode = i;
-    if(query.NECMap[currNode] != -1 && query.NECMap[currNode] != currNode)
-    {
-      CandidateSpace& currSet = candSpace[query.NECMap[currNode]];
-      long long size = 0;
-      for(int j = 0; j < currSet.size; j++)
-      {
-        if(currSet.candidates[j] != -1)
-          size++;
-      }
-      sum += size;
-      continue;
-    }
-    CandidateSpace& currSet = candSpace[currNode];
-    long long size = 0;
-    for(int j = 0; j < currSet.size; j++)
-    {
-      if(currSet.candidates[j] != -1)
-        size++;
-    }
-    sum += size;
-  }
-  return sum;
-}
-*/
+
+// Prints information about the CS(Candidate Set)
+// and adjacency lists for nodes in a query graph.
+//
+// This function takes a query graph and prints information
+// related to the CS and adjacency lists of the graph's nodes.
+// It displays the core nodes of the graph, their corresponding candidate sets,
+// and the adjacency lists of the nodes.
 void printCS(Graph& query) {
   cerr << "Core:";
   for (int i = 0; i < nQueryVertex; i++) {
