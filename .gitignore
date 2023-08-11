@@ -31,6 +31,10 @@
 *.out
 *.app
 
+# Output files
+output
+VEQ_S
+
 # Other
 .DS_Store
 .vscode/
