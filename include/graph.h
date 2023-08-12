@@ -1,13 +1,4 @@
-#include <algorithm>
-#include <cstring>
-#include <iostream>
-#include <unordered_map>
-#include <utility>
-#include <vector>
-
 #include "config.h"
-// #define PRINT_LOG
-// #define EDGE_LABEL
 using namespace std;
 
 int* cntLabel;

@@ -1,60 +1,10 @@
 #define CELL_COMPUTATION_OPT
-#include <algorithm>
 #include <cfloat>
-#include <climits>
-#include <fstream>
-#include <iomanip>
-#include <iostream>
-#include <limits>
-#include <map>
-#include <queue>
-#include <set>
-#include <unordered_set>
-#include <vector>
 #define __STDC_FORMAT_MACROS
-#include <inttypes.h>
-#include <limits.h>  // for LLONG_MAX which is 9223372036854775807
-#include <unistd.h>
-
-#include <cstring>
-#include <string>
-#include <unordered_map>
 
 #include "process.h"
+#include "structure.h"
 using namespace std;
-
-#include <cassert>
-
-class Array {
- public:
-  int* b;
-  int size;
-  Array(){};
-  Array(int* arr, int* pos, int start, int end) {
-    size = end - start;
-    b = new int[size];
-    for (int i = 0; i < size; ++i) b[i] = arr[pos[start + i]];
-    sort(b, b + size);
-  }
-
-  bool operator==(const Array& other) const {
-    if (size != other.size)
-      return false;
-    else {
-      bool ret = true;
-      for (int x = 0; x < size; ++x) ret &= (b[x] == other.b[x]);
-      return ret;
-    }
-  }
-};
-
-struct ArrayHash {
-  size_t operator()(const Array& array) const {
-    size_t ret = 0;
-    for (int i = 0; i < array.size; ++i) ret = ret ^ array.b[i];
-    return ret + array.b[0];
-  }
-};
 
 unordered_map<Array, int, ArrayHash> cellToID;
 int* cellPos;
@@ -105,25 +55,6 @@ inline void swapValue(pair<int, int>& v1, pair<int, int>& v2) {
   v2 = temp;
 }
 
-// Variables for buildling CS
-struct CandidateSpace {
-  int size;         // the size for both path and candidates
-  int* candidates;  // candidate set
-  int*** adjacent =
-      NULL;  // adjacent[i][j] = candidates of this unit when the i-th parent,
-             // regarding DAG, mapped to the j-th candidate of the parent.
-  int** nAdjacent =
-      NULL;  // nAdjacent[i][j] = size of back_trak_index[i][j]. That is, the
-             // number of candidates of this unit when the i-th parent mapped to
-             // the j-th candidate of the parent.
-
-  int** capacity = NULL;
-  int** capacityNgb = NULL;
-  long long* weight = NULL;
-  int* cell;
-  int* cellVertex;
-  int nCellVertex;
-};
 int uSequence[MAX_NUM_VERTEX];
 int uSequenceSize = 0;
 
@@ -172,32 +103,10 @@ pair<int, int>
 double PRE_COMPUTED_PERMUTATION;
 int candPos[MAX_NUM_VERTEX];
 int currMapping[MAX_NUM_VERTEX];
-int nMappedParent[MAX_NUM_VERTEX];
-weight_type WEIGHT_MAX = LLONG_MAX;
-long long optWeight = LLONG_MAX;
 int* iec[MAX_NUM_VERTEX][MAX_QUERY_DEGREE];
-int iecSize[MAX_NUM_VERTEX][MAX_QUERY_DEGREE];
-struct Stack {
-  int* address = NULL;
-  int addressSize;
-  int addressPos;
-  int vertex;
-  // for failing set
-  uint64_t* failingSet;
-  uint64_t* buffer;
-  uint64_t* conflictCell;
-  bool* isPruned;
-  int nPruned;
-  int* pruned;
-  int* problemChild;
-  int nProblemChild;
-};
+
 Stack element[MAX_NUM_VERTEX];
 Stack* currE;
-
-inline long long getWeightExtendable(int u) {
-  return iecSize[u][nMappedParent[u] - 1];
-}
 
 inline bool isInFailingSet(int u, const uint64_t* failingSet) {
   return failingSet[u >> 6] & (1ULL << (u & 0x3f));
@@ -206,69 +115,6 @@ inline bool isInFailingSet(int u, const uint64_t* failingSet) {
 inline void addInFailingSet(int u, uint64_t* failingSet) {
   failingSet[u >> 6] |= (1ULL << (u & 0x3f));
 }
-
-struct Queue {
- private:
-  int posExtendable = 0;
-  int minPosition = -1;
-  long long optWeight = LLONG_MAX;
-  int extendable[MAX_NUM_VERTEX] = {
-      0,
-  };
-  int positions[MAX_NUM_VERTEX] = {
-      0,
-  };
-  int nInserted[MAX_NUM_VERTEX] = {
-      0,
-  };
-
- public:
-  Queue() { this->posExtendable = 0; }
-  inline void reinsertToQueue(int u, int depth) {
-    int position = positions[depth];
-    extendable[posExtendable] = extendable[position];
-    posExtendable++;
-    extendable[position] = u;
-  }
-
-  inline void insertToQueue(int u) {
-    extendable[posExtendable] = u;
-    posExtendable++;
-  }
-
-  inline void popFromQueue(int& current, int depth) {
-    int optPos = -1;
-
-    weight_type optWeight = WEIGHT_MAX;
-
-    for (int i = 0; i < posExtendable; i++) {
-      if (getWeightExtendable(extendable[i]) < optWeight) {
-        optPos = i;
-        optWeight = getWeightExtendable(extendable[i]);
-      }
-    }
-
-    current = extendable[optPos];
-    positions[depth] = optPos;
-    extendable[optPos] = extendable[posExtendable - 1];
-    posExtendable--;
-  }
-
-  inline void removeFromQueue(int depth) { posExtendable -= nInserted[depth]; }
-
-  inline void clearQueue() {
-    memset(nInserted, 0, sizeof(int) * nQueryVertex);
-    posExtendable = 0;
-  }
-
-  void clear_nInserted(int depth) { this->nInserted[depth] = 0; }
-
-  void add_nInserted(int depth) { this->nInserted[depth]++; }
-
-  int set_optWeight(int optWeight) { this->optWeight = optWeight; }
-
-  int set_minPosition(int minPosition) { this->minPosition = minPosition; }
-};
 
 Queue queueFllExt;
 
