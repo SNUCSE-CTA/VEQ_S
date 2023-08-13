@@ -1,8 +1,10 @@
 #define CELL_COMPUTATION_OPT
+#include <algorithm>
 #include <cfloat>
 #define __STDC_FORMAT_MACROS
 
-#include "process.h"
+#include <unordered_map>
+
 #include "structure.h"
 using namespace std;
 
@@ -18,6 +20,11 @@ int* posArray;
 int* candArray;
 int* candOffset;
 
+Stack element[MAX_NUM_VERTEX];
+Stack* currE;
+
+Queue queueFllExt;
+
 // Main result variables
 bool* answer;
 int nCandidate = 0;
@@ -27,33 +34,15 @@ long long int recursiveCallCount = 0;
 long long int recursiveCallCountPerGraph;
 // Elapsed time variable used in the main function
 bool exceedTimeLimit;
-chrono::high_resolution_clock::time_point startPoint, endPoint;
-long long int quotient, lastQuotient;
-double elapsedTime;
-const double timeLimit = 600000;
 double filteringTime;
 double verificationTime;
 double totalTime;
-double sumFilteringTime = 0;
-double sumVerificationTime = 0;
-double sumTotalTime = 0;
+
 int auxDataStructureSize;
 // File paths
 string dataGraphFile;
 string queryGraphFile;
 string answerFile;
-
-inline void swapValue(int& v1, int& v2) {
-  int temp = v1;
-  v1 = v2;
-  v2 = temp;
-}
-
-inline void swapValue(pair<int, int>& v1, pair<int, int>& v2) {
-  pair<int, int> temp = v1;
-  v1 = v2;
-  v2 = temp;
-}
 
 int uSequence[MAX_NUM_VERTEX];
 int uSequenceSize = 0;
@@ -66,183 +55,8 @@ int toCleanIndex = 0;
 char* isVisited;  // data count
 int* candToPos;   // data count
 
-// Variables for maximal matching
-int nodeIndex = 0;
-int dist[MAX_NUM_VERTEX + 1];
-int* uCand;
-int* necMapping;
-int* pairU;
-int* pairV;
-number_type leafCandSize = 0;
-int leafCandIndex = 0;
-vector<int> leafCand;
-pair<int, int>* leafCandInfo;
-int** sumNECCand;  // added for the optimization of performing all MM first
-int* nSumNECCand;  // added for the optimization of performing all MM first
-int* vCandIndex;   // length: maxNumDataVertex. its each entry stores the number
-                   // of query nodes contain the corresponding candidate.
-int posSumNECCand;
-vector<pair<int, int>>* vCandInfo;  // a combination of v_cands and v_cands_pos
-pair<int, int>* uCandInfo;          // two-d array:
-// [i,j] means the j-th candidate pair of the i-th nec node(in the nec-node
-// categorized by label) each candidate pair stores a candidate and the position
-// of "the i-th nec node" in this candidate's u_cand set.
-int* flagSumNECCand;  // indicate whether or not a candidate has been added into
-                      // the candidate already.
-
-// Variables for search
-int uCurr;
-int labelID = -1;
-int NECSetSize = -1;
-pair<int, pair<int, double>> NECRank[MAX_NUM_VERTEX];
-int NECRegionSize[MAX_NUM_VERTEX];
-int NECCountSet[MAX_NUM_VERTEX];
-int NECCountSetSize;
-pair<int, int>
-    vNECCount[MAX_NUM_VERTEX];  // used in the map special tree function
-double PRE_COMPUTED_PERMUTATION;
-int candPos[MAX_NUM_VERTEX];
-int currMapping[MAX_NUM_VERTEX];
-int* iec[MAX_NUM_VERTEX][MAX_QUERY_DEGREE];
-
-Stack element[MAX_NUM_VERTEX];
-Stack* currE;
-
-inline bool isInFailingSet(int u, const uint64_t* failingSet) {
-  return failingSet[u >> 6] & (1ULL << (u & 0x3f));
-}
-
-inline void addInFailingSet(int u, uint64_t* failingSet) {
-  failingSet[u >> 6] |= (1ULL << (u & 0x3f));
-}
-
-Queue queueFllExt;
-
-// Variables for pruning by failing sets
-int FAILING_SET_SIZE = ((MAX_NUM_VERTEX + 63) >> 6);
-uint64_t* ancestors[MAX_NUM_VERTEX];
-bool isRedundant;
-// Variables for pruning by equivalence sets
-int CELL_SIZE;
-int nMaxCell;
-
-// Variables for filtering by neighbor safety
-using lint = long long;
-bool on = false;
-int index_vis_color = 0;
-int index_set_color = 0;
-int index_vis_adj = 0;
-int index_ngb_existence = 0;
-double s1 = 0;
-double s2 = 0;
-#ifdef HUGE_GRAPH
-int DATAV;
-int LABEL;
-int** color;              // label 2
-int* set_color;           // label
-int* vis_adj;             // datav
-int** num_ngb_existence;  // datav 2
-lint* cnt_included_cs;    // datav
-#else
-const int DATAV = 4300000;
-const int LABEL = 50000;
-int color[LABEL][2] = {
-    0,
-};
-int set_color[LABEL] = {
-    0,
-};
-int vis_adj[DATAV] = {
-    0,
-};
-int num_ngb_existence[DATAV][2] = {
-    0,
-};
-lint cnt_included_cs[DATAV] = {
-    0,
-};
-#endif
-
 // Temporary variables
 uint64_t* b;
-
-// ======================= sorting functions
-// ========================================
-inline bool sortLLCNode(pair<int, pair<int, double>> a,
-                        pair<int, pair<int, double>>
-                            b) {  // the second pair is <node sum, cand sum>
-  if (a.second.first == b.second.first)
-    return a.second.second < b.second.second;
-  else
-    return a.second.first < b.second.first;
-}
-inline bool sortByEffectiveCandSize(pair<int, int> p1, pair<int, int> p2) {
-  return NECRegionSize[p1.first] < NECRegionSize[p2.first];
-}
-inline bool sortBySecondElement(pair<int, int> p1, pair<int, int> p2) {
-  return (p1.second < p2.second);
-}
-inline bool sortQueryByDegree(const int id1, const int id2) {
-  return (currQ->degree[id1] > currQ->degree[id2]);
-}
-inline bool sortQueryByLabelFrequency(const int id1, const int id2) {
-  return (currG->labelFrequency[currQ->label[id1]] <
-          currG->labelFrequency[currQ->label[id2]]);
-}
-inline bool sortPairsByWeight(const pair<long long, long long>& p1,
-                              const pair<long long, long long>& p2) {
-  return p1.second < p2.second;
-}
-
-inline double factorization(int x) {
-  switch (x) {
-    case 1:
-      return 1;
-    case 2:
-      return 2;
-    case 3:
-      return 6;
-    case 4:
-      return 24;
-    case 5:
-      return 120;
-    case 6:
-      return 720;
-    case 7:
-      return 5040;
-    case 8:
-      return 40320;
-    case 9:
-      return 362880;
-    case 10:
-      return 3628800;
-    case 11:
-      return 39916800;
-    case 12:
-      return 479001600;
-    case 13:
-      return 6227020800;
-    case 14:
-      return 87178291200;
-    case 15:
-      return 1307674368000;
-    case 16:
-      return 20922789888000;
-    case 17:
-      return 355687428096000;
-    case 18:
-      return 6402373705728000;
-    case 19:
-      return 121645100408832000;
-    case 20:
-      return 2432902008176640000;
-  }
-
-  double result = 2432902008176640000;
-  for (double i = 21; i <= x; i++) result *= i;
-
-  return result;
-}
 
 inline void AllocateForDataGraph() {
 #ifdef HUGE_GRAPH
@@ -559,10 +373,6 @@ inline void FindNEC(Graph& query, int u) {
   }
 }
 
-inline bool sortByNECLabel(const Element& p1, const Element& p2) {
-  return (p1.label < p2.label);
-}
-
 inline void ExtractResidualStructures(Graph& query) {
   NECSize.clear();
   NECChild.clear();
@@ -630,6 +440,7 @@ inline void ExtractResidualStructures(Graph& query) {
   // pos: the starting position of NEC vertices with label l in NECElement if l
   // != -1, the last position of NECElement otherwise
 }
+
 inline void BuildDAG(Graph& query) {
   char* uCurr = visitedForQuery;  // visitedForQuery[i] = 1 if i-node have uCurr
                                   // from queue.

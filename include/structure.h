@@ -1,14 +1,4 @@
-#include <limits.h>  // for LLONG_MAX which is 9223372036854775807
-
-weight_type WEIGHT_MAX = LLONG_MAX;
-long long optWeight = LLONG_MAX;
-
-int iecSize[MAX_NUM_VERTEX][MAX_QUERY_DEGREE];
-int nMappedParent[MAX_NUM_VERTEX];
-
-inline long long getWeightExtendable(int u) {
-  return iecSize[u][nMappedParent[u] - 1];
-}
+#include "util.h"
 
 class Array {
  public:

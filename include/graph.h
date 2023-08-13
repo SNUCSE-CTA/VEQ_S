@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "config.h"
 using namespace std;
 
@@ -80,9 +82,7 @@ class Graph {
   Element* NECElement;
   int* NECMap;
   int numNECMapping;
-#ifdef LEAF_ADAPTIVE_MATCHING
   bool* isProblemLeaf;
-#endif
   Graph() {
     nVertex = 0;
     nEdge = 0;
