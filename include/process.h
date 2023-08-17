@@ -1,7 +1,6 @@
 #include <chrono>
 #include <fstream>
 #include <iostream>
-#include <tuple>
 
 #include "graph.h"
 using namespace std;
@@ -22,13 +21,7 @@ vector<Graph*> queryGraph;
 // char * isMappedDataVertex;
 int* mapTo;
 bool isMapped[MAX_NUM_VERTEX];
-#ifdef PRUNING_BY_EQUIVALENCE_SETS
 int order[MAX_NUM_VERTEX];
-#ifdef SUBGRAPH_MATCHING
-int* nActive;
-pair<int, int>** active;
-#endif
-#endif
 int extendable[MAX_NUM_VERTEX];
 // Core Decomposition of query
 int arrForQuery[MAX_NUM_VERTEX];

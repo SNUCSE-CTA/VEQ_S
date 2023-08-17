@@ -1,13 +1,7 @@
 #include <algorithm>
-#include <cstring>
-#include <iostream>
-#include <unordered_map>
-#include <utility>
 #include <vector>
 
 #include "config.h"
-// #define PRINT_LOG
-// #define EDGE_LABEL
 using namespace std;
 
 int* cntLabel;
@@ -89,9 +83,7 @@ class Graph {
   Element* NECElement;
   int* NECMap;
   int numNECMapping;
-#ifdef LEAF_ADAPTIVE_MATCHING
   bool* isProblemLeaf;
-#endif
   Graph() {
     nVertex = 0;
     nEdge = 0;

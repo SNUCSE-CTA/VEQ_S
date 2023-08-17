@@ -1,74 +1,16 @@
-// #define CHECK_TIME
-// #define MAPPING_FUNCTION_LOG
 #define CELL_COMPUTATION_OPT
 #include <algorithm>
 #include <cfloat>
-#include <climits>
-#include <fstream>
-#include <iomanip>
-#include <iostream>
-#include <limits>
-#include <map>
-#include <queue>
-#include <set>
-#include <unordered_set>
-#include <vector>
 #define __STDC_FORMAT_MACROS
-#include <inttypes.h>
-#include <limits.h>  //for LLONG_MAX which is 9223372036854775807
-#include <unistd.h>
 
-#include <cstring>
-#include <string>
 #include <unordered_map>
-#ifdef MAPPING_FUNCTION_LOG
-#include <bitset>
-#endif
-#include "process.h"
+
+#include "structure.h"
 using namespace std;
 
-#include <cassert>
-
-#ifdef PRUNING_BY_EQUIVALENCE_SETS
-class Array {
- public:
-  int* b;
-  int size;
-  Array(){};
-  Array(int* arr, int* pos, int start, int end) {
-    size = end - start;
-    b = new int[size];
-    for (int i = 0; i < size; ++i) b[i] = arr[pos[start + i]];
-    sort(b, b + size);
-  }
-
-  bool operator==(const Array& other) const {
-    if (size != other.size)
-      return false;
-    else {
-      bool ret = true;
-      for (int x = 0; x < size; ++x) ret &= (b[x] == other.b[x]);
-      return ret;
-    }
-  }
-};
-
-struct ArrayHash {
-  size_t operator()(const Array& array) const {
-    size_t ret = 0;
-    for (int i = 0; i < array.size; ++i) ret = ret ^ array.b[i];
-    return ret + array.b[0];
-  }
-};
-
 unordered_map<Array, int, ArrayHash> cellToID;
-#ifdef SUBGRAPH_MATCHING
-vector<int> cellPos;
-vector<int> cellList;
-#else
 int* cellPos;
 int* cellList;
-#endif
 unordered_map<Array, int, ArrayHash>::iterator uIter;
 unordered_map<int, Array>::iterator iIter;
 int uI;
@@ -77,76 +19,31 @@ int globalCellID = 1;
 int* posArray;
 int* candArray;
 int* candOffset;
-#endif
+
+Stack element[MAX_NUM_VERTEX];
+Stack* currE;
+
+Queue queueFllExt;
 
 // Main result variables
 bool* answer;
 int nCandidate = 0;
 double nMatch, nCurrMatch, nRemainingMatch;
-#ifdef SUBGRAPH_MATCHING
-const double nMaxMatch = 100000;
-#else
 const double nMaxMatch = 1;
-#endif
 long long int recursiveCallCount = 0;
 long long int recursiveCallCountPerGraph;
 // Elapsed time variable used in the main function
 bool exceedTimeLimit;
-chrono::high_resolution_clock::time_point startPoint, endPoint;
-long long int quotient, lastQuotient;
-double elapsedTime;
-const double timeLimit = 600000;
 double filteringTime;
 double verificationTime;
 double totalTime;
-double sumFilteringTime = 0;
-double sumVerificationTime = 0;
-double sumTotalTime = 0;
+
 int auxDataStructureSize;
 // File paths
 string dataGraphFile;
 string queryGraphFile;
 string answerFile;
 
-inline void swapValue(int& v1, int& v2) {
-  int temp = v1;
-  v1 = v2;
-  v2 = temp;
-}
-
-inline void swapValue(pair<int, int>& v1, pair<int, int>& v2) {
-  pair<int, int> temp = v1;
-  v1 = v2;
-  v2 = temp;
-}
-
-// Variables for buildling CS
-struct CandidateSpace {
-  int size;         // the size for both path and candidates
-  int* candidates;  // candidate set
-  int*** adjacent =
-      NULL;  // adjacent[i][j] = candidates of this unit when the i-th parent,
-             // regarding DAG, mapped to the j-th candidate of the parent.
-  int** nAdjacent =
-      NULL;  // nAdjacent[i][j] = size of back_trak_index[i][j]. That is, the
-             // number of candidates of this unit when the i-th parent mapped to
-             // the j-th candidate of the parent.
-
-#ifdef N_OPTIMIZATION
-  int** capacity = NULL;
-  int** capacityNgb = NULL;
-#else
-  int* nParentCand =
-      NULL;  // nParentCand[i] = the number of candidates of the i-th parent.
-  int* nNgbCand = NULL;
-#endif
-  long long* weight = NULL;
-#ifdef PRUNING_BY_EQUIVALENCE_SETS
-  int* cell;
-  int* cellVertex;
-  int nCellVertex;
-#endif
-};
 int uSequence[MAX_NUM_VERTEX];
 int uSequenceSize = 0;
 
@@ -158,332 +55,10 @@ int toCleanIndex = 0;
 char* isVisited;  // data count
 int* candToPos;   // data count
 
-// Variables for maximal matching
-int nodeIndex = 0;
-int dist[MAX_NUM_VERTEX + 1];
-int* uCand;
-int* necMapping;
-int* pairU;
-int* pairV;
-number_type leafCandSize = 0;
-int leafCandIndex = 0;
-vector<int> leafCand;
-pair<int, int>* leafCandInfo;
-int** sumNECCand;  // added for the optimization of performing all MM first
-int* nSumNECCand;  // added for the optimization of performing all MM first
-int* vCandIndex;   // length: maxNumDataVertex. its each entry stores the number
-                   // of query nodes contain the corresponding candidate.
-int posSumNECCand;
-vector<pair<int, int>>* vCandInfo;  // a combination of v_cands and v_cands_pos
-pair<int, int>* uCandInfo;          // two-d array:
-//[i,j] means the j-th candidate pair of the i-th nec node(in the nec-node
-// categorized by label) each candidate pair stores a candidate and the position
-// of "the i-th nec node" in this candidate's u_cand set.
-int* flagSumNECCand;  // indicate whether or not a candidate has been added into
-                      // the candidate already.
-
-// Variables for search
-int uCurr;
-int labelID = -1;
-int NECSetSize = -1;
-pair<int, pair<int, double>> NECRank[MAX_NUM_VERTEX];
-int NECRegionSize[MAX_NUM_VERTEX];
-int NECCountSet[MAX_NUM_VERTEX];
-int NECCountSetSize;
-pair<int, int>
-    vNECCount[MAX_NUM_VERTEX];  // used in the map special tree function
-double PRE_COMPUTED_PERMUTATION;
-int candPos[MAX_NUM_VERTEX];
-int currMapping[MAX_NUM_VERTEX];
-int nMappedParent[MAX_NUM_VERTEX];
-#ifdef QUERY_VERTEX_WITH_MAX
-weight_type WEIGHT_MIN = LLONG_MIN;
-#else
-weight_type WEIGHT_MAX = LLONG_MAX;
-#endif
-long long optWeight = LLONG_MAX;
-int* iec[MAX_NUM_VERTEX][MAX_QUERY_DEGREE];
-int iecSize[MAX_NUM_VERTEX][MAX_QUERY_DEGREE];
-struct Stack {
-  int* address = NULL;
-  int addressSize;
-  int addressPos;
-  int vertex;
-  // for failing set
-  uint64_t* failingSet;
-#ifdef PRUNING_BY_EQUIVALENCE_SETS
-  uint64_t* buffer;
-  uint64_t* conflictCell;
-  bool* isPruned;
-  int nPruned;
-  int* pruned;
-#ifdef SUBGRAPH_MATCHING
-  uint64_t* auxBuffer;
-  uint64_t* nonConflictCell;
-  bool* neverVisited;
-  double* nFoundMatch;
-#endif
-#endif
-#ifdef LEAF_ADAPTIVE_MATCHING
-  int* problemChild;
-  int nProblemChild;
-#endif
-#ifdef CANDIDATE_VERTEX_WITH_MAX
-  bool* isVisited;
-#endif
-};
-Stack element[MAX_NUM_VERTEX];
-Stack* currE;
-
-inline long long getWeightExtendable(int u) {
-  return iecSize[u][nMappedParent[u] - 1];
-}
-
-inline bool isInFailingSet(int u, const uint64_t* failingSet) {
-  return failingSet[u >> 6] & (1ULL << (u & 0x3f));
-}
-
-inline void addInFailingSet(int u, uint64_t* failingSet) {
-  failingSet[u >> 6] |= (1ULL << (u & 0x3f));
-}
-
-struct Queue {
- private:
-  int posExtendable = 0;
-  int minPosition = -1;
-  long long optWeight = LLONG_MAX;
-  int extendable[MAX_NUM_VERTEX] = {
-      0,
-  };
-  int positions[MAX_NUM_VERTEX] = {
-      0,
-  };
-  int nInserted[MAX_NUM_VERTEX] = {
-      0,
-  };
-
- public:
-  Queue() { this->posExtendable = 0; }
-#ifdef MAPPING_FUNCTION_LOG
-  inline void printQueue() const {
-    string str = "Q:";
-    for (int i = 0; i < posExtendable; i++) {
-      str += " u" + to_string(extendable[i]);
-    }
-    printf("%s\n", str.c_str());
-  }
-#endif
-  inline void reinsertToQueue(int u, int depth) {
-    int position = positions[depth];
-
-    extendable[posExtendable] = extendable[position];
-    posExtendable++;
-
-    extendable[position] = u;
-#ifdef MAPPING_FUNCTION_LOG
-    printf("\t(rI) u%d (pos: %d), Min. weight: %ld (|Q|: %d)\n", u, minPosition,
-           optWeight, posExtendable);
-#endif
-  }
-
-  inline void insertToQueue(int u) {
-    extendable[posExtendable] = u;
-    posExtendable++;
-#ifdef MAPPING_FUNCTION_LOG
-    printf("\t(I) u%d (pos: %d), Min. weight: %ld (|Q|: %d)\n", u, minPosition,
-           optWeight, posExtendable);
-#endif
-  }
-
-  inline void popFromQueue(int& current, int depth) {
-    int optPos = -1;
-
-    weight_type optWeight = WEIGHT_MAX;
-
-    for (int i = 0; i < posExtendable; i++) {
-      if (getWeightExtendable(extendable[i]) < optWeight) {
-        optPos = i;
-        optWeight = getWeightExtendable(extendable[i]);
-      }
-    }
-
-    current = extendable[optPos];
-    positions[depth] = optPos;
-    extendable[optPos] = extendable[posExtendable - 1];
-    posExtendable--;
-
-#ifdef MAPPING_FUNCTION_LOG
-    printf("\t(P) weight(u%d): %ld in pos %d in Q (|Q|: %d)\n", current,
-           optWeight, optPos, posExtendable);
-#endif
-  }
-
-  inline void removeFromQueue(int depth) {
-    posExtendable -= nInserted[depth];
-#ifdef MAPPING_FUNCTION_LOG
-    printf("\t(R) |Q|: %d\n", posExtendable);
-#endif
-  }
-
-  inline void clearQueue() {
-    memset(nInserted, 0, sizeof(int) * nQueryVertex);
-    posExtendable = 0;
-#ifdef MAPPING_FUNCTION_LOG
-    printf("\t(R) |Q|: %d\n", posExtendable);
-#endif
-  }
-
-  void clear_nInserted(int depth) { this->nInserted[depth] = 0; }
-
-  void add_nInserted(int depth) { this->nInserted[depth]++; }
-
-  int set_optWeight(int optWeight) { this->optWeight = optWeight; }
-
-  int set_minPosition(int minPosition) { this->minPosition = minPosition; }
-};
-
-Queue queueFllExt;
-
-// Variables for pruning by failing sets
-int FAILING_SET_SIZE = ((MAX_NUM_VERTEX + 63) >> 6);
-uint64_t* ancestors[MAX_NUM_VERTEX];
-bool isRedundant;
-// Variables for pruning by equivalence sets
-#ifdef PRUNING_BY_EQUIVALENCE_SETS
-int CELL_SIZE;
-int nMaxCell;
-#endif
-
-// Variables for filtering by neighbor safety
-#ifdef FILTERING_BY_NEIGHBOR_SAFETY
-using lint = long long;
-bool on = false;
-int index_vis_color = 0;
-int index_set_color = 0;
-int index_vis_adj = 0;
-int index_ngb_existence = 0;
-double s1 = 0;
-double s2 = 0;
-#ifdef HUGE_GRAPH
-int DATAV;
-int LABEL;
-int** color;              // label 2
-int* set_color;           // label
-int* vis_adj;             // datav
-int** num_ngb_existence;  // datav 2
-lint* cnt_included_cs;    // datav
-#else
-const int DATAV = 4300000;
-const int LABEL = 50000;
-int color[LABEL][2] = {
-    0,
-};
-int set_color[LABEL] = {
-    0,
-};
-int vis_adj[DATAV] = {
-    0,
-};
-int num_ngb_existence[DATAV][2] = {
-    0,
-};
-lint cnt_included_cs[DATAV] = {
-    0,
-};
-#endif
-#endif
-
 // Temporary variables
 uint64_t* b;
 
-//======================= sorting functions
-//========================================
-inline bool sortLLCNode(pair<int, pair<int, double>> a,
-                        pair<int, pair<int, double>>
-                            b) {  // the second pair is <node sum, cand sum>
-  if (a.second.first == b.second.first)
-    return a.second.second < b.second.second;
-  else
-    return a.second.first < b.second.first;
-}
-inline bool sortByEffectiveCandSize(pair<int, int> p1, pair<int, int> p2) {
-  return NECRegionSize[p1.first] < NECRegionSize[p2.first];
-}
-inline bool sortBySecondElement(pair<int, int> p1, pair<int, int> p2) {
-  return (p1.second < p2.second);
-}
-inline bool sortQueryByDegree(const int id1, const int id2) {
-  return (currQ->degree[id1] > currQ->degree[id2]);
-}
-inline bool sortQueryByLabelFrequency(const int id1, const int id2) {
-  return (currG->labelFrequency[currQ->label[id1]] <
-          currG->labelFrequency[currQ->label[id2]]);
-}
-inline bool sortPairsByWeight(const pair<long long, long long>& p1,
-                              const pair<long long, long long>& p2) {
-  return p1.second < p2.second;
-}
-
-#ifdef SUBGRAPH_MATCHING
-inline string doubleToString(double value) {
-  string strVal = to_string(value);
-  int pos = strVal.find_first_of(".");
-  return strVal.substr(0, pos);
-}
-#endif
-
-inline double factorization(int x) {
-  switch (x) {
-    case 1:
-      return 1;
-    case 2:
-      return 2;
-    case 3:
-      return 6;
-    case 4:
-      return 24;
-    case 5:
-      return 120;
-    case 6:
-      return 720;
-    case 7:
-      return 5040;
-    case 8:
-      return 40320;
-    case 9:
-      return 362880;
-    case 10:
-      return 3628800;
-    case 11:
-      return 39916800;
-    case 12:
-      return 479001600;
-    case 13:
-      return 6227020800;
-    case 14:
-      return 87178291200;
-    case 15:
-      return 1307674368000;
-    case 16:
-      return 20922789888000;
-    case 17:
-      return 355687428096000;
-    case 18:
-      return 6402373705728000;
-    case 19:
-      return 121645100408832000;
-    case 20:
-      return 2432902008176640000;
-  }
-
-  double result = 2432902008176640000;
-  for (double i = 21; i <= x; i++) result *= i;
-
-  return result;
-}
-
 inline void AllocateForDataGraph() {
-#ifdef FILTERING_BY_NEIGHBOR_SAFETY
 #ifdef HUGE_GRAPH
   DATAV = maxNumDataVertex + 10;
   LABEL = nUniqueLabel + 10;
@@ -514,7 +89,6 @@ inline void AllocateForDataGraph() {
     cnt_included_cs[i] = (lint)(0);
   }
 #endif
-#endif
   pairV = new int[maxNumDataVertex];
 
   vCandIndex = new int[maxNumDataVertex];
@@ -542,13 +116,8 @@ inline void AllocateForDataGraph() {
   answer = new bool[nGraph];
   memset(answer, false, sizeof(bool) * nGraph);
 #ifdef PRUNING_BY_EQUIVALENCE_SETS
-#ifdef SUBGRAPH_MATCHING
-  cellPos.reserve(maxNumCandidate);
-  cellList.reserve(maxNumDataVertex);
-#else
   cellPos = new int[maxNumCandidate];
   cellList = new int[maxNumDataVertex];
-#endif
 #endif
 }
 
@@ -556,9 +125,7 @@ inline void Deallocate(Graph& query) {
   delete[] query.NECMapping;
   delete[] query.NECElement;
   delete[] query.NECMap;
-#ifdef LEAF_ADAPTIVE_MATCHING
   delete[] query.isProblemLeaf;
-#endif
   leafCand.clear();
   delete[] leafCandInfo;
   delete[] necMapping;
@@ -567,40 +134,18 @@ inline void Deallocate(Graph& query) {
   delete[] uCandInfo;
   for (int i = 0; i < maxNumDataVertex; ++i) vCandInfo[i].clear();
 
-#ifdef PRUNING_BY_EQUIVALENCE_SETS
-#ifdef SUBGRAPH_MATCHING
-  delete[] nActive;
-  for (int i = 0; i < maxNumDataVertex; ++i) delete[] active[i];
-  delete[] active;
-#endif
-#endif
   for (int i = 0; i < nQueryVertex; i++) {
     delete[] element[i].failingSet;
-#ifdef PRUNING_BY_EQUIVALENCE_SETS
     delete[] element[i].conflictCell;
     delete[] element[i].isPruned;
     delete[] element[i].pruned;
-#ifdef SUBGRAPH_MATCHING
-    delete[] element[i].nonConflictCell;
-    delete[] element[i].neverVisited;
-    delete[] element[i].nFoundMatch;
-#endif
-#endif
-#ifdef LEAF_ADAPTIVE_MATCHING
     delete[] element[i].problemChild;
-#endif
-#ifdef CANDIDATE_VERTEX_WITH_MAX
-    delete[] element[i].isVisited;
-#endif
     for (int j = 0; j < MAX_QUERY_DEGREE; j++) delete[] iec[i][j];
     if (useFailingSet) delete[] ancestors[i];
   }
 
   // For BuildDAG
   for (int i = 0; i < nQueryVertex; i++) {
-#ifdef NEIGHBOR_LABEL_FREQUENCY
-    delete[] NLFArray[i];
-#endif
     delete[] DAG_parent_query[i];
   }
   for (int i = 0; i < nQueryVertex; i++) {
@@ -613,30 +158,21 @@ inline void Deallocate(Graph& query) {
     CandidateSpace& currSet = candSpace[u];
     delete[] currSet.candidates;
     delete[] currSet.weight;
-#ifdef N_OPTIMIZATION  //[if]
     for (int k = 0; k < query.maxDegree; ++k) {
       delete[] currSet.nAdjacent[k];
       delete[] currSet.adjacent[k];
       delete[] currSet.capacity[k];
     }
     delete[] currSet.capacity;
-#else   //[else]
-    delete[] currSet.nParentCand;
-#endif  //[end]
-
     delete[] currSet.nAdjacent;
     delete[] currSet.adjacent;
 
-#ifdef PRUNING_BY_EQUIVALENCE_SETS
     delete[] currSet.cell;
     delete[] currSet.cellVertex;
-#endif
   }
-#ifdef PRUNING_BY_EQUIVALENCE_SETS
   delete[] posArray;
   delete[] candArray;
   delete[] candOffset;
-#endif
 }
 
 inline void AllocateForQueryGraph(Graph& query) {
@@ -644,9 +180,7 @@ inline void AllocateForQueryGraph(Graph& query) {
   query.NECMapping = new int[nUniqueLabel * nQueryVertex];
   query.NECElement = new Element[nUniqueLabel * nQueryVertex];
   query.NECMap = new int[nQueryVertex];
-#ifdef LEAF_ADAPTIVE_MATCHING
   query.isProblemLeaf = new bool[nQueryVertex];
-#endif
   FAILING_SET_SIZE = (nQueryVertex + 63) >> 6;
 
   leafCandSize = nQueryVertex * maxNumDataVertex;
@@ -664,53 +198,22 @@ inline void AllocateForQueryGraph(Graph& query) {
 
   for (int i = 0; i < maxNumDataVertex; i++) vCandInfo[i].resize(nQueryVertex);
 
-#ifdef PRUNING_BY_EQUIVALENCE_SETS
   nMaxCell = maxNumCandidate;
   CELL_SIZE = ((maxNumCandidate + 63) >> 6);
-#ifdef SUBGRAPH_MATCHING
-  nActive = new int[maxNumDataVertex];
-  active = new pair<int, int>*[maxNumDataVertex];
-  unordered_map<int, int>::const_iterator lit;
-  query.maxNumSameLabelVertex = 0;
-  for (lit = query.labelFrequency.begin(); lit != query.labelFrequency.end();
-       ++lit) {
-    if (lit->second > query.maxNumSameLabelVertex)
-      query.maxNumSameLabelVertex = lit->second;
-  }
-  for (int i = 0; i < maxNumDataVertex; ++i)
-    active[i] = new pair<int, int>[query.maxNumSameLabelVertex];
-#endif
-#endif
   for (int i = 0; i < nQueryVertex; i++) {
     element[i].failingSet = new uint64_t[FAILING_SET_SIZE];
-#ifdef PRUNING_BY_EQUIVALENCE_SETS
     element[i].conflictCell = new uint64_t[CELL_SIZE]();
-    element[i].isPruned = new bool[maxNumCandidate]();  // TODO. to maxDegree
+    element[i].isPruned = new bool[maxNumCandidate]();
     element[i].nPruned = 0;
     element[i].pruned = new int[maxNumCandidate];
-#ifdef SUBGRAPH_MATCHING
-    element[i].nonConflictCell = new uint64_t[CELL_SIZE]();
-    element[i].neverVisited = new bool[maxNumCandidate]();  // TODO. to
-                                                            // maxDegree
-    element[i].nFoundMatch = new double[maxNumCandidate]();
-#endif
-#endif
-#ifdef LEAF_ADAPTIVE_MATCHING
     element[i].problemChild = new int[query.maxDegree];
     element[i].nProblemChild = 0;
-#endif
-#ifdef CANDIDATE_VERTEX_WITH_MAX
-    element[i].isVisited = new bool[maxNumCandidate]();  // TODO. to maxDegree
-#endif
     for (int j = 0; j < MAX_QUERY_DEGREE; j++) iec[i][j] = new int[maxDegree];
     if (useFailingSet) ancestors[i] = new uint64_t[FAILING_SET_SIZE];
   }
 
   // For BuildDAG
   for (int i = 0; i < nQueryVertex; i++) {
-#ifdef NEIGHBOR_LABEL_FREQUENCY
-    NLFArray[i] = new pair<int, int>[query.degree[i]];
-#endif
     DAG_parent_query[i] = new int[query.maxDegree];
   }
   for (int i = 0; i < nQueryVertex; i++) {
@@ -725,7 +228,6 @@ inline void AllocateForQueryGraph(Graph& query) {
     currSet.weight = new long long[maxNumCandidate];
     currSet.nAdjacent = new int*[query.maxDegree];
     currSet.adjacent = new int**[query.maxDegree];
-#ifdef N_OPTIMIZATION
     currSet.capacity = new int*[query.maxDegree];
     for (int k = 0; k < query.maxDegree; ++k) {
       currSet.nAdjacent[k] = new int[maxNumCandidate];
@@ -733,47 +235,24 @@ inline void AllocateForQueryGraph(Graph& query) {
       currSet.capacity[k] = new int[maxNumCandidate];
       memset(currSet.capacity[k], 0, sizeof(int) * maxNumCandidate);
     }
-#else
-    currSet.nParentCand = new int[query.maxDegree];
-    memset(currSet.nParentCand, 0, sizeof(int) * query.maxDegree);
-#endif
-#ifdef PRUNING_BY_EQUIVALENCE_SETS
     currSet.cell = new int[maxNumCandidate];
     currSet.cellVertex = new int[maxNumCandidate];
-#endif
   }
-#ifdef PRUNING_BY_EQUIVALENCE_SETS
   posArray = new int[maxNumCandidate];
   candArray = new int[maxNumCandidate];
   candOffset = new int[maxNumCandidate];
-#endif
 }
 
 inline void SetQueryGraphResource(Graph& query) {
-#ifdef PRUNING_BY_EQUIVALENCE_SETS
   globalCellID = 1;
   cellToID.clear();
-#ifdef SUBGRAPH_MATCHING
-  nMatch = 0;
-  memset(nActive, 0, sizeof(int) * maxNumDataVertex);
-#ifdef MULTIPLE_QUERIES
-  lastQuotient = 0;
-  cellPos.clear();
-  cellList.clear();
-#endif
-  cellPos.push_back(0);
-#else
   cellPos[0] = 0;
-#endif
-#endif
   memset(visitedForQuery, 0, sizeof(char) * nQueryVertex);
   memset(cntLabel, 0, sizeof(int) * nUniqueLabel);
   for (int u = 0; u < nQueryVertex; ++u) {
     candSpace[u].size = 0;
-#ifdef PRUNING_BY_EQUIVALENCE_SETS
     candSpace[u].nCellVertex = 0;
     memset(candSpace[u].cell, -1, sizeof(int) * maxNumCandidate);
-#endif
   }
 }
 
@@ -803,7 +282,6 @@ inline int SelectRootVertex(const Graph& query, const Graph& data) {
     degree = query.degree[i];
     int start = data.vertexOffset[label];
     int end = data.vertexOffset[label + 1];
-    // cerr<<"Frequency(l(u"<<i<<")="<<label<<"): "<<end - start<<endl;
     while (start < end && degree > data.degree[data.vertex[start]]) start++;
     rank = (double)(end - start) / (double)degree;
     if (rank < leastRank) {
@@ -817,9 +295,7 @@ inline int SelectRootVertex(const Graph& query, const Graph& data) {
 inline void FindNEC(Graph& query, int u) {
   pair<int, int> p;
   unordered_map<pair<int, int>, int, pairHash>::iterator sizeIter;
-#ifdef LEAF_ADAPTIVE_MATCHING
   unordered_map<int, int>::const_iterator freqIter;
-#endif
   // for all of node i's children
   for (int j = query.nbrOffset[u]; j < query.nbrOffset[u + 1]; j++) {
     int child = query.nbr[j];
@@ -836,11 +312,9 @@ inline void FindNEC(Graph& query, int u) {
           query.NECMap[child] = child;
           NECChild[p] = child;
           NECSize[p] = 1;
-#ifdef LEAF_ADAPTIVE_MATCHING
           freqIter = query.labelFrequency.find(label);
           if (freqIter != query.labelFrequency.end() && freqIter->second > 1)
             query.isProblemLeaf[child] = true;
-#endif
         } else {
           query.NECMap[child] = NECChild[p];
           sizeIter->second += 1;
@@ -865,7 +339,7 @@ inline void FindNEC(Graph& query, int u) {
             int child = query.nbr[m];
             if (!visitedForQuery[child]) {
               visitedForQuery[child] = 1;
-              //======== special treatment here: if a node is a leaf (degree
+              // ======== special treatment here: if a node is a leaf (degree
               // being 1), then put it into nec node set
               if (query.degree[child] == 1) {
                 int label = query.label[child];
@@ -878,12 +352,10 @@ inline void FindNEC(Graph& query, int u) {
                   query.NECMap[child] = child;
                   NECChild[p] = child;
                   NECSize[p] = 1;
-#ifdef LEAF_ADAPTIVE_MATCHING
                   freqIter = query.labelFrequency.find(label);
                   if (freqIter != query.labelFrequency.end() &&
                       freqIter->second > 1)
                     query.isProblemLeaf[child] = true;
-#endif
                 } else {
                   query.NECMap[child] = NECChild[p];
                   sizeIter->second += 1;
@@ -901,19 +373,13 @@ inline void FindNEC(Graph& query, int u) {
   }
 }
 
-inline bool sortByNECLabel(const Element& p1, const Element& p2) {
-  return (p1.label < p2.label);
-}
-
 inline void ExtractResidualStructures(Graph& query) {
   NECSize.clear();
   NECChild.clear();
   NECElementOffset.clear();
   query.numNECMapping = 0;
   memset(query.NECMap, -1, sizeof(int) * nQueryVertex);
-#ifdef LEAF_ADAPTIVE_MATCHING
   memset(query.isProblemLeaf, false, sizeof(bool) * nQueryVertex);
-#endif
   if (isTree) {
     FindNEC(query, root);
   } else {
@@ -974,27 +440,7 @@ inline void ExtractResidualStructures(Graph& query) {
   // pos: the starting position of NEC vertices with label l in NECElement if l
   // != -1, the last position of NECElement otherwise
 }
-#ifdef NEIGHBOR_LABEL_FREQUENCY
-inline void GenerateNLF(Graph& query) {
-  for (int ui = 0; ui < nQueryVertex; ++ui) {
-    for (int j = query.nbrOffset[ui]; j < query.nbrOffset[ui + 1]; ++j) {
-      int un = query.nbr[j];
-      int label = query.label[un];
-      bool newLabel = true;
-      for (int k = 0; k < numNLF[ui]; ++k) {
-        if (label == NLFArray[ui][k].first) {
-          newLabel = false;
-          NLFArray[ui][k].second += 1;
-          break;
-        }
-      }
-      if (newLabel) {
-        NLFArray[ui][numNLF[ui]++] = make_pair(label, 1);
-      }
-    }
-  }
-}
-#endif
+
 inline void BuildDAG(Graph& query) {
   char* uCurr = visitedForQuery;  // visitedForQuery[i] = 1 if i-node have uCurr
                                   // from queue.
@@ -1003,9 +449,6 @@ inline void BuildDAG(Graph& query) {
       visitedForQueryInt;  // visited[i] = level if i-node had pushed into
                            // queue, where level is it's BFS-level.
   memset(visited, 0, sizeof(int) * nQueryVertex);
-#ifdef NEIGHBOR_LABEL_FREQUENCY
-  memset(numNLF, 0, sizeof(int) * nQueryVertex);
-#endif
   memset(DAG_child_query_size, 0, sizeof(int) * nQueryVertex);
   memset(DAG_parent_query_size, 0, sizeof(int) * nQueryVertex);
   memset(DAG_ngb_query_size, 0, sizeof(int) * nQueryVertex);
@@ -1068,12 +511,8 @@ inline void BuildDAG(Graph& query) {
   for (int i = 0; i < nQueryVertex; ++i) {
     if (query.NECMap[i] == -1) ++query.nNonLeaf;
   }
-#ifdef NEIGHBOR_LABEL_FREQUENCY
-  GenerateNLF(query);
-#endif
 }
 
-#ifdef FILTERING_BY_NEIGHBOR_SAFETY
 enum direction { topDown, bottomUp };
 
 enum ngbType { parentNgb, childNgb, allNgb };
@@ -1257,7 +696,6 @@ inline bool filteringWithDAG(const Graph& query, const Graph& data,
   }
   return true;
 }
-#endif
 
 inline bool TopDownInitial(const Graph& query, const Graph& data) {
   // Initialize candidates of root vertex
@@ -1276,20 +714,6 @@ inline bool TopDownInitial(const Graph& query, const Graph& data) {
         data.maxNbrDegree[v] < query.maxNbrDegree[root])
       continue;
     char isAdded = 1;
-#ifdef NEIGHBOR_LABEL_FREQUENCY
-    const unordered_map<int, int>& dataNLF = data.NLF[v];
-    if (dataNLF.size() < numNLF[root]) continue;
-    pair<int, int> currNLF;
-    unordered_map<int, int>::const_iterator iter;
-    for (int k = 0; k < numNLF[root]; ++k) {
-      currNLF = NLFArray[root][k];
-      iter = dataNLF.find(currNLF.first);
-      if (iter == dataNLF.end() || iter->second < currNLF.second) {
-        isAdded = 0;
-        break;
-      }
-    }
-#else
     for (int pos = NLFSize - 1; pos >= 0; pos--) {
 #ifdef HUGE_GRAPH
       if (data.NLF[(long long)v * (long long)NLFSize + (long long)pos] !=
@@ -1304,7 +728,6 @@ inline bool TopDownInitial(const Graph& query, const Graph& data) {
         break;
       }
     }
-#endif
     if (isAdded) rootUnit.candidates[rootUnit.size++] = v;
   }
   if (rootUnit.size == 0) return false;
@@ -1364,20 +787,6 @@ inline bool TopDownInitial(const Graph& query, const Graph& data) {
           continue;
         // check lightweight NLF
         char isAdded = 1;
-#ifdef NEIGHBOR_LABEL_FREQUENCY
-        const unordered_map<int, int>& dataNLF = data.NLF[canID];
-        if (dataNLF.size() < numNLF[currVertex]) continue;
-        pair<int, int> currNLF;
-        unordered_map<int, int>::const_iterator iter;
-        for (int k = 0; k < numNLF[currVertex]; ++k) {
-          currNLF = NLFArray[currVertex][k];
-          iter = dataNLF.find(currNLF.first);
-          if (iter == dataNLF.end() || iter->second < currNLF.second) {
-            isAdded = 0;
-            break;
-          }
-        }
-#else
         for (int pos = NLFSize - 1; pos >= 0; pos--) {
 #ifdef HUGE_GRAPH
           if (data.NLF[(long long)canID * (long long)NLFSize +
@@ -1395,7 +804,6 @@ inline bool TopDownInitial(const Graph& query, const Graph& data) {
             break;
           }
         }
-#endif
         // lightweight NLF OK
         if (isAdded) {
           currSet.candidates[candIndex] = canID;
@@ -1573,18 +981,9 @@ inline bool ConstructAdjacencyList(const Graph& query, const Graph& data,
 
       // Process only represent node when the child is in NEC
       if (query.NECMap[un] != -1 && query.NECMap[un] != un) continue;
-// Initialize candidate space
-// Make sure it won't allocate new array every time
-#ifdef N_OPTIMIZATION
-#else
-      if (nbrSet.nParentCand[uPos] < currSet.size) {
-        nbrSet.nAdjacent[uPos] = new int[currSet.size];
-        nbrSet.adjacent[uPos] = new int*[currSet.size];
-        nbrSet.nParentCand[uPos] = currSet.size;
-      }
-#endif
+      // Initialize candidate space
+      // Make sure it won't allocate new array every time
       memset(nbrSet.nAdjacent[uPos], 0, sizeof(int) * currSet.size);
-#ifdef N_OPTIMIZATION
       for (int vPos = 0; vPos < currSet.size; ++vPos) {
         int currSize = data.degree[currSet.candidates[vPos]];
         if (nbrSet.capacity[uPos][vPos] < currSize) {
@@ -1592,12 +991,6 @@ inline bool ConstructAdjacencyList(const Graph& query, const Graph& data,
           nbrSet.adjacent[uPos][vPos] = new int[currSize];
         }
       }
-#else
-      for (int vPos = 0; vPos < currSet.size; ++vPos) {
-        nbrSet.adjacent[uPos][vPos] =
-            new int[data.degree[currSet.candidates[vPos]]];
-      }
-#endif
       // 1.1.1. for each vertex vn in C(un) Most time-consuming in
       // ConstructAdjacencyList
       for (int vnPos = 0; vnPos < nbrSet.size; ++vnPos) {
@@ -1633,30 +1026,18 @@ inline bool ConstructAdjacencyList(const Graph& query, const Graph& data,
     }
   }
   if (filter) {
-    //<GlobalLabelFrequency>
+    // <GlobalLabelFrequency>
     while (toCleanIndex != 0) isVisited[arrayToClean[--toCleanIndex]] = 0;
     for (unordered_map<int, int>::const_iterator it =
              query.labelFrequency.begin();
          it != query.labelFrequency.end(); ++it) {
       if (cntLabel[it->first] < it->second) return false;
     }
-    //</GlobalLabelFrequency>
+    // </GlobalLabelFrequency>
   }
   return true;
 }
 
-#ifdef SUBGRAPH_MATCHING
-inline void ComputeAuxiliaryDataStructureSize() {
-  auxDataStructureSize = 0;
-  for (int i = 0; i < uSequenceSize; ++i) {
-    int u = uSequence[i];
-    if (currQ->NECMap[u] != -1 && currQ->NECMap[u] != u) continue;
-    auxDataStructureSize += candSpace[u].size;
-  }
-}
-#endif
-
-#ifdef PRUNING_BY_EQUIVALENCE_SETS
 inline int partitionByNeighbor(int arr[], int uPos, int nbr, int nbrPos,
                                int low, int high) {
   int i = low - 1;
@@ -1671,33 +1052,9 @@ inline int partitionByNeighbor(int arr[], int uPos, int nbr, int nbrPos,
   }
   return (i + 1);
 }
-#ifdef CELL_COMPUTATION_OPT
-inline pair<int, int> computeNeighborPositionRange(int arr[], int uPos, int nbr,
-                                                   int low, int high) {
-  int minVal = maxNumCandidate, maxVal = -1;
-  for (int j = low; j < high; ++j) {
-    int* adjList = candSpace[nbr].adjacent[uPos][arr[j]];
-    int nAdj = candSpace[nbr].nAdjacent[uPos][arr[j]];
-    if (adjList[0] < minVal) minVal = adjList[0];
-    if (adjList[nAdj - 1] > maxVal) maxVal = adjList[nAdj - 1];
-  }
-  return make_pair(minVal, maxVal + 1);
-}
-#endif
-#ifdef CELL_COMPUTATION_OPT
 inline void sortByNeighbor(int arr[], int index, int uPos, int nbr, int nbrPos,
-                           int nbrStart, int nbrEnd, int low, int high)
-#else
-inline void sortByNeighbor(int arr[], int index, int uPos, int nbr, int nbrPos,
-                           int low, int high)
-#endif
-{
-#ifdef CELL_COMPUTATION_OPT
-  if (nbrPos >= nbrEnd)
-#else
-  if (nbrPos >= candSpace[nbr].size)
-#endif
-  {
+                           int low, int high) {
+  if (nbrPos >= candSpace[nbr].size) {
     ++index;
     if (index >= DAG_ngb_query_size[uI]) return;
     nbr = DAG_ngb_query[uI][index];
@@ -1708,32 +1065,15 @@ inline void sortByNeighbor(int arr[], int index, int uPos, int nbr, int nbrPos,
     }
     uPos = DAG_ngb_query_ngb_index[uI][index];
 
-#ifdef CELL_COMPUTATION_OPT
-    pair<int, int> p = computeNeighborPositionRange(arr, uPos, nbr, low, high);
-    nbrStart = nbrPos = p.first;
-    nbrEnd = p.second;
-#else
     nbrPos = 0;
-#endif
     for (int x = low; x < high; ++x) posArray[arr[x]] = 0;
   }
   int pivot = partitionByNeighbor(arr, uPos, nbr, nbrPos, low, high);
   if (pivot > low && pivot < high) candOffset[nCandOffset++] = pivot;
-// cout<<"!Partition by v"<<candSpace[nbr].candidates[nbrPos]<<"("<<nbrPos<<")
-// in C(u"<<nbr<<"). low: "<<low<<". pivot: "<<pivot<<". high: "<<high<<endl;
-#ifdef CELL_COMPUTATION_OPT
-  if (pivot - low > 1)
-    sortByNeighbor(arr, index, uPos, nbr, nbrPos + 1, nbrStart, nbrEnd, low,
-                   pivot);
-  if (high - pivot > 1)
-    sortByNeighbor(arr, index, uPos, nbr, nbrPos + 1, nbrStart, nbrEnd, pivot,
-                   high);
-#else
   if (pivot - low > 1)
     sortByNeighbor(arr, index, uPos, nbr, nbrPos + 1, low, pivot);
   if (high - pivot > 1)
     sortByNeighbor(arr, index, uPos, nbr, nbrPos + 1, pivot, high);
-#endif
 }
 
 inline void GetCell(const Graph& query, int u, int d, int* extCand,
@@ -1776,16 +1116,9 @@ inline void GetCell(const Graph& query, int u, int d, int* extCand,
           currSet.cellVertex[currSet.nCellVertex++] = candArray[candOffset[j]];
           continue;
         }
-// Compute cells in C(u)
-#ifdef CELL_COMPUTATION_OPT
-        pair<int, int> p = computeNeighborPositionRange(
-            candArray, uPos, nbr, candOffset[j], candOffset[j + 1]);
-        sortByNeighbor(candArray, index, uPos, nbr, p.first, p.first, p.second,
-                       candOffset[j], candOffset[j + 1]);
-#else
+        // Compute cells in C(u)
         sortByNeighbor(candArray, index, uPos, nbr, 0, candOffset[j],
                        candOffset[j + 1]);
-#endif
       }
       // Sort the offset of cells in candArray in the ascending order
       sort(candOffset, candOffset + nCandOffset);
@@ -1811,48 +1144,20 @@ inline void GetCell(const Graph& query, int u, int d, int* extCand,
         CELL_SIZE = ((nMaxCell + 63) >> 6);
         for (int i = 0; i < nQueryVertex; ++i) {
           element[i].buffer = new uint64_t[CELL_SIZE]();
-#ifdef SUBGRAPH_MATCHING
-          element[i].auxBuffer = new uint64_t[CELL_SIZE]();
-#endif
         }
         for (int i = 0; i < d; ++i) {
           for (int j = 0; j < prevSize; ++j) {
             element[i].buffer[j] = element[i].conflictCell[j];
-#ifdef SUBGRAPH_MATCHING
-            element[i].auxBuffer[j] = element[i].nonConflictCell[j];
-#endif
           }
         }
         for (int i = 0; i < nQueryVertex; ++i) {
           element[i].conflictCell = element[i].buffer;
-#ifdef SUBGRAPH_MATCHING
-          element[i].nonConflictCell[j] = element[i].auxBuffer[j];
-#endif
         }
       }
-#ifdef SUBGRAPH_MATCHING
-      cellPos.push_back(cellPos[currID - 1]);
-#else
       cellPos[currID] = cellPos[currID - 1];
-#endif
-#ifdef MAPPING_FUNCTION_LOG
-      cout << "Cell " << currID << ":";
-#endif
       for (int k = candOffset[j]; k < candOffset[j + 1]; ++k) {
-#ifdef MAPPING_FUNCTION_LOG
-        cout << " v" << currSet.candidates[candArray[k]] << "("
-             << cellPos[currID] << ")";
-#endif
-#ifdef SUBGRAPH_MATCHING
-        cellList.push_back(currSet.candidates[candArray[k]]);
-        ++cellPos[currID];
-#else
         cellList[cellPos[currID]++] = currSet.candidates[candArray[k]];
-#endif
       }
-#ifdef MAPPING_FUNCTION_LOG
-      cout << endl;
-#endif
     } else {
       currID = uIter->second;
     }
@@ -1864,21 +1169,6 @@ inline void GetCell(const Graph& query, int u, int d, int* extCand,
   }
 }
 
-#ifdef PRUNING_BY_EQUIVALENCE_SETS
-#ifdef SUBGRAPH_MATCHING
-inline void Deactivate(Stack& retE, int depth) {
-  bool isRoot = (retE.vertex == root);
-  CandidateSpace& retSet = candSpace[retE.vertex];
-  for (int aPos = 0; aPos < retE.addressSize; ++aPos) {
-    int idx = isRoot ? aPos : retE.address[aPos];
-    int v = retSet.candidates[idx];
-    if (nActive[v] > 0 && active[v][nActive[v] - 1].first == depth)
-      --nActive[v];
-  }
-}
-#endif
-#endif
-
 inline void GetEquivalence(Stack& retE) {
   bool isRoot = (retE.vertex == root);
   CandidateSpace& retSet = candSpace[retE.vertex];
@@ -1888,14 +1178,6 @@ inline void GetEquivalence(Stack& retE) {
   if ((retE.conflictCell[0] & 1ULL) != 0 || cID == 0) return;
   int nCell = 1, cPos = 0, aPos = cellPos[cID - 1];
   int v = retSet.candidates[idx];
-#ifdef MAPPING_FUNCTION_LOG
-  cout << "GetEquivalence. ConflictCell(u" << retE.vertex
-       << "): " << bitset<64>(retE.conflictCell[0]) << endl;
-#ifdef SUBGRAPH_MATCHING
-  cout << "GetEquivalence. NonconflictCell(u" << retE.vertex
-       << "): " << bitset<64>(retE.nonConflictCell[0]) << endl;
-#endif
-#endif
   for (int y = cellPos[cID - 1]; y < cellPos[cID]; ++y) {
     arrayToClean[toCleanIndex++] = cellList[y];
     ++isVisited[cellList[y]];
@@ -1911,55 +1193,17 @@ inline void GetEquivalence(Stack& retE) {
       arr ^= (arr & -arr);
     }
   }
-#ifdef SUBGRAPH_MATCHING
-  for (int z = 0; z < CELL_SIZE; ++z) {
-    uint64_t arr = retE.nonConflictCell[z] & (~retE.conflictCell[z]);
-    while (arr) {
-      int id = (z << 6) + __builtin_ctzl(arr);
-      for (int y = cellPos[id - 1]; y < cellPos[id]; ++y)
-        isVisited[cellList[y]] = 0;
-      arr ^= (arr & -arr);
-    }
-  }
-#endif
   for (aPos = initPos; aPos < retE.addressSize; ++aPos) {
     if (retE.isPruned[aPos]) continue;
     idx = isRoot ? aPos : retE.address[aPos];
     v = retSet.candidates[idx];
-#ifdef SUBGRAPH_MATCHING
-    if ((retE.nFoundMatch[initPos] > 0 && isVisited[v] == nCell &&
-         retE.neverVisited[aPos]) ||
-        (retE.nFoundMatch[initPos] == 0 && isVisited[v] == nCell))
-#else
-    if (isVisited[v] == nCell)
-#endif
-    {
-#ifdef SUBGRAPH_MATCHING
-      retE.neverVisited[aPos] = false;
-      retE.nFoundMatch[aPos] = retE.nFoundMatch[initPos];
-#ifdef MAPPING_FUNCTION_LOG
-      cout << "Check v" << v << "(" << aPos << ") \\in C(u" << retE.vertex
-           << "). ";
-      cout << "E[u" << retE.vertex << "].nFoundMatch[" << aPos << "]: "
-           << "E[u" << retE.vertex << "].nFoundMatch[" << initPos << "] ("
-           << retE.nFoundMatch[initPos] << ")" << endl;
-#endif
-#endif
+    if (isVisited[v] == nCell) {
       retE.isPruned[aPos] = true;
       retE.pruned[retE.nPruned++] = aPos;
     }
   }
   while (toCleanIndex != 0) isVisited[arrayToClean[--toCleanIndex]] = 0;
-#ifdef MAPPING_FUNCTION_LOG
-  cout << "Pruned in C(u" << retE.vertex << "):";
-  for (int i = 0; i < retE.nPruned; ++i) {
-    idx = isRoot ? retE.pruned[i] : retE.address[retE.pruned[i]];
-    cout << " v" << retSet.candidates[idx];
-  }
-  cout << endl;
-#endif
 }
-#endif  // PRUNING_BY_EQUIVALENCE_SETS
 
 inline bool BFS_MM() {
   // BFS function for maximum matching
@@ -2006,8 +1250,6 @@ inline bool DFS_MM(int u) {
     int nec = necMapping[u];  // get the actual index in the LLC
     for (int j = 0; j < NECRegionSize[nec]; j++) {
       int v = uCand[nec * maxNumCandidate + j];
-      // cout<<"uCand["<<nec<<"*"<<maxNumCandidate<<"+"<<j<<"<"<<nQueryVertex<<"*"<<maxNumCandidate<<"]:
-      // "<<v<<" add. "<<&uCand[nec*maxNumCandidate+j]<<endl;
       if (dist[pairV[v]] == dist[u] + 1)
         if (DFS_MM(pairV[v])) {
           pairV[v] = u;
@@ -2022,12 +1264,7 @@ inline bool DFS_MM(int u) {
 }
 
 inline void combine(double& cntEmbedding, double resultSoFar) {
-#ifdef SUBGRAPH_MATCHING
-  if (cntEmbedding * resultSoFar > nRemainingMatch)
-    return;  // nRest: the number of matches to find
-#else
   if (cntEmbedding * resultSoFar > 0) return;
-#endif
   // Step One: find a candidate that is with the max number of NEC nodes'
   // candidate set containing it locate the candidate with the last coverage
   // number
@@ -2107,7 +1344,7 @@ inline void combine(double& cntEmbedding, double resultSoFar) {
     }
   }
 
-  //======multiple=====
+  // ====== multiple ======
   // sort accord to size of each query node's effective candidate size
   sort(vCandInfo[maxCand].begin(),
        vCandInfo[maxCand].begin() + vCandIndex[maxCand],
@@ -2156,12 +1393,7 @@ inline void combine(double& cntEmbedding, double resultSoFar) {
       }                                  // end for j
     }                                    // end if
     combine(cntEmbedding, resultSoFar);  // recursive function
-#ifdef SUBGRAPH_MATCHING
-    if (cntEmbedding * resultSoFar > nRemainingMatch)
-#else
-    if (cntEmbedding * resultSoFar > 0)
-#endif
-    {
+    if (cntEmbedding * resultSoFar > 0) {
       // clean up and return
       mapTo[maxCand] = -1;
       return;
@@ -2181,12 +1413,7 @@ inline void combine(double& cntEmbedding, double resultSoFar) {
   }
   mapTo[maxCand] = -1;
   combine(cntEmbedding, resultSoFar);  // recursive function
-#ifdef SUBGRAPH_MATCHING
-  if (cntEmbedding * resultSoFar > nRemainingMatch)
-#else
-  if (cntEmbedding * resultSoFar > 0)
-#endif
-  {
+  if (cntEmbedding * resultSoFar > 0) {
     // clean up and return
     mapTo[maxCand] = -1;
     return;
@@ -2203,9 +1430,6 @@ inline void combine(double& cntEmbedding, double resultSoFar) {
 }
 
 inline double CountLeafMatch(const Graph& query, double matchFound) {
-#ifdef SUBGRAPH_MATCHING
-  nRemainingMatch = nMaxMatch - matchFound;
-#endif
   double matchResult = 1;
   int NECSetSize = NECElementOffset.size() -
                    1;  // -1 is because the last currE is actually redundant
@@ -2214,8 +1438,9 @@ inline double CountLeafMatch(const Graph& query, double matchFound) {
   int uCandCounter, sumCand;
   memset(necMapping, -1, sizeof(int) * (nQueryVertex + 1));  // for MM
   leafCandIndex = 0;
-  //=== First scan === fastly identify whether all candidates satisfy the (cand
-  //< nec) and (sumCand < sum_nec). (the sum cands here are not unique cands)
+  // === First scan === fastly identify whether all candidates satisfy the
+  // (cand < nec) and (sumCand < sum_nec). (the sum cands here are not unique
+  // cands)
   for (int i = 0; i < NECSetSize; i++) {
     // for each label
     int c, d, loc;
@@ -2232,53 +1457,27 @@ inline double CountLeafMatch(const Graph& query, double matchFound) {
       uCandCounter = 0;  // record the number of candidate for this nec node
       int parentPos = candPos[parentID];
       CandidateSpace& unit = candSpace[uR];
-#ifdef PRUNING_BY_EQUIVALENCE_SETS
       order[uR] = query.nNonLeaf;
       GetCell(query, uR, order[uR], unit.adjacent[0][parentPos],
               unit.nAdjacent[0][parentPos]);
-#endif
       for (int it = 0; it < unit.nAdjacent[0][parentPos]; it++) {
         int idx = unit.adjacent[0][parentPos][it];
         int v = unit.candidates[idx];
         if (mapTo[v] == uR) mapTo[v] = -1;
         if (mapTo[v] < 0) {
           ++uCandCounter;
-#ifdef PRUNING_BY_EQUIVALENCE_SETS
-#ifdef SUBGRAPH_MATCHING
-          c = unit.cell[idx];
-          if (c > 0) {
-            for (int x = 0; x < nActive[v]; ++x) {
-              d = active[v][x].first;
-              element[d].nonConflictCell[c >> 6] |= (1ULL << (c & 0x3f));
-            }
-          } else {
-            for (int x = 0; x < nActive[v]; ++x) {
-              d = active[v][x].first;
-              loc = active[v][x].second;
-              element[d].neverVisited[loc] = false;
-#ifdef MAPPING_FUNCTION_LOG
-              cout << "[L] Set (d: " << d << ", u" << element[d].vertex << ", v"
-                   << v << ") as visited" << endl;
-#endif
-            }
-          }
-#endif
-#endif
-        }
-#ifdef PRUNING_BY_EQUIVALENCE_SETS
-        else {
+        } else {
           Stack& ancElem = element[order[mapTo[v]]];
           c = unit.cell[idx];
           ancElem.conflictCell[c >> 6] |= (1ULL << (c & 0x3f));
         }
-#endif
       }
       if (uCandCounter < NECNum) return 0;
       sumCand += uCandCounter;
     }
     if (sumCand < sumNEC) return 0;
   }
-  //=== Second scan: extract cands and perform the maximum matching
+  // === Second scan: extract cands and perform the maximum matching
   for (int i = 0; i < NECSetSize; i++) {       // for each label
     int start = NECElementOffset[i].second;    // start position
     int end = NECElementOffset[i + 1].second;  // end position
@@ -2330,7 +1529,8 @@ inline double CountLeafMatch(const Graph& query, double matchFound) {
       nSumNECCand[label] = posSumNECCand;  // added on 20:15 09/05/2016
     }
     if (uniqueUCandCounter < sumNEC) {
-      // no result //reset "flagSumNECCand"
+      // no result
+      // reset "flagSumNECCand"
       for (int i = 1; i < posSumNECCand; i++)  // it starts from 1 NOT 0
         flagSumNECCand[localSumNECCand[i]] = -1;
       return 0;
@@ -2339,17 +1539,12 @@ inline double CountLeafMatch(const Graph& query, double matchFound) {
     // for next time use
     for (int i = 1; i < posSumNECCand; i++)  // it starts from 1 NOT 0
       flagSumNECCand[localSumNECCand[i]] = -1;
-    //== BEGIN checking MAXIMUM MATCHING
-    //============================================== using nec_region as the
+    // == BEGIN checking MAXIMUM MATCHING
+    // ============================================== using nec_region as the
     // adjacent list
     memset(pairU, NULL, sizeof(int) * nQueryVertex);  // must reset before using
-#ifdef SUBGRAPH_MATCHING
-    memset(pairV, NULL,
-           sizeof(int) * maxNumCandidate);  // must reset before using
-#else
     memset(pairV, NULL,
            sizeof(int) * currG->nVertex);  // must reset before using
-#endif
     int matching = 0;
     while (BFS_MM()) {
       for (int u = 1; u < nodeIndex; u++)
@@ -2359,31 +1554,26 @@ inline double CountLeafMatch(const Graph& query, double matchFound) {
     if (matching != nodeIndex - 1) {
       return 0;
     }
-    //== END checking MAXIMUM MATCHING
-    //==========================================
+    // == END checking MAXIMUM MATCHING
+    // ==========================================
     NECRank[i] = make_pair(i, make_pair(sumNEC, sumCand));
   }
   sort(NECRank, NECRank + NECSetSize, sortLLCNode);
   // Deal with the labels one by one
   for (int i = 0; i < NECSetSize; i++) {  // for each nec node label
-#ifdef SUBGRAPH_MATCHING
-    if (matchResult > nRemainingMatch) continue;
-#else
-    if (matchResult > 0) continue;         // 20190425. Subgraph query
-#endif
+    if (matchResult > 0) continue;
     double cntLocalMatchLabel = 0;
     int posElem = NECRank[i].first;  // the label index of this nec label set
                                      // ==> this is not the actual label!!!!
     int nodeSum =
         NECRank[i].second.first;  // the number of node in this nec label set
     labelID = NECElementOffset[posElem].first;
-    if (nodeSum == 1) {  //==== CASE ONE : there is only one node in this nec
-                         // set with this label =====
-      cntLocalMatchLabel =
-          (long long)NECRank[i]
-              .second.second;  // we have computed this one in the last step
+    if (nodeSum == 1) {
+      // ==== CASE ONE : there is only one node in this nec set with this label
+      // we have computed this one in the last step
+      cntLocalMatchLabel = (long long)NECRank[i].second.second;
       if (cntLocalMatchLabel == 0) return 0;
-    } else {  //==== CASE TWO : more than one node, and possible more than one
+    } else {  // ==== CASE TWO : more than one node, and possible more than one
               // start nodes (nec_units)
       memset(localFlagQuery, 0, sizeof(char) * nQueryVertex);
       posSumNECCand = 1;  // omit zero, start from 1 ===> Leave 0 for NULL of
@@ -2391,7 +1581,7 @@ inline double CountLeafMatch(const Graph& query, double matchFound) {
       int start = NECElementOffset[posElem].second;
       int end = NECElementOffset[posElem + 1].second;
       int localNECSize = end - start;  // number of nec with posElem
-      //======= sorting here is to decide the processing sequence of the nec
+      // ======= sorting here is to decide the processing sequence of the nec
       // nodes in this nec label set
       for (int j = start, x = 0; j < end; j++, x++)
         vNECCount[x] = make_pair(j, query.NECElement[j].sum);
@@ -2447,7 +1637,7 @@ inline double CountLeafMatch(const Graph& query, double matchFound) {
       // cleaned up using the above two parameters.
       int found = 1;
       while (found > 0) {
-        //=============preprocess before the combination
+        // ============= preprocess before the combination
         found = 0;
         // first, we scan each nec node, to see whether there exists such a node
         // that its candidate size is equal to its unmatched nec size
@@ -2520,7 +1710,7 @@ inline double CountLeafMatch(const Graph& query, double matchFound) {
           }  // end if
         }    // end for i
       }      // end PREPROCESSING
-      //================== END PREPROCESSING ==============================
+      // ================== END PREPROCESSING ==============================
       combine(cntLocalMatchLabel, matchResult);
 
       // Clean up
@@ -2534,28 +1724,15 @@ inline double CountLeafMatch(const Graph& query, double matchFound) {
     }  // end else : end of case TWO
     matchResult *= cntLocalMatchLabel;
   }
-#ifdef MAPPING_FUNCTION_LOG
-  printf("[L] Found %lf embeddings.\n", matchResult);
-#endif
   return matchResult;
 }
 
 void conflictClass(int uCurr, int uID, int depth) {
-#ifdef MAPPING_FUNCTION_LOG
-  if ((ancestors[depth][uCurr >> 6] & (1ULL << (uCurr & 0x3f))) == 0)
-    printf("[%d] U = U u {u%d}!!!!\n", depth, uCurr);
-#endif
   ancestors[depth][uCurr >> 6] |= (1ULL << (uCurr & 0x3f));
 
   const uint64_t arr = (1ULL << (uID & 0x3f));
   addInFailingSet(uID, currE->failingSet);
-// currE->failingSet[uID >> 6] |= arr;
-#ifdef MAPPING_FUNCTION_LOG
-  if ((ancestors[depth][uID >> 6] & (1ULL << (uID & 0x3f))) == 0)
-    printf("[%d] U = U u {u%d}\n", depth, uID);
-#endif
   addInFailingSet(uID, ancestors[depth]);
-  // ancestors[depth][uID >> 6] |= arr;
 }
 
 struct dynamicDAG_ancestors {
@@ -2584,7 +1761,6 @@ struct dynamicDAG_ancestors {
   }
 } dyanc;
 
-#ifdef LEAF_ADAPTIVE_MATCHING
 inline long long FindProblemLeafMatch(int depth, Stack& elem, int u, int label,
                                       int uP) {
   unordered_map<pair<int, int>, int, pairHash>::iterator sizeIter;
@@ -2593,49 +1769,19 @@ inline long long FindProblemLeafMatch(int depth, Stack& elem, int u, int label,
   long long NECNum = sizeIter->second;
   long long uCandCounter = 0;
   CandidateSpace& unit = candSpace[u];
-#ifdef PRUNING_BY_EQUIVALENCE_SETS
   order[u] = order[uP] + 1;
   GetCell(*currQ, u, order[u], unit.adjacent[0][pPos], unit.nAdjacent[0][pPos]);
-#endif
   for (int i = 0; i < unit.nAdjacent[0][pPos]; ++i) {
     pos = unit.adjacent[0][pPos][i];
     v = unit.candidates[pos];
     if (mapTo[v] < 0) {
       ++uCandCounter;
-#ifdef PRUNING_BY_EQUIVALENCE_SETS
-#ifdef SUBGRAPH_MATCHING
-      c = unit.cell[pos];
-      if (c > 0) {
-        for (int x = 0; x < nActive[v]; ++x) {
-          d = active[v][x].first;
-          element[d].nonConflictCell[c >> 6] |= (1ULL << (c & 0x3f));
-        }
-      } else {
-        for (int x = 0; x < nActive[v]; ++x) {
-          d = active[v][x].first;
-          loc = active[v][x].second;
-          element[d].neverVisited[loc] = false;
-#ifdef MAPPING_FUNCTION_LOG
-          cout << "[L] Set (d: " << d << ", u" << element[d].vertex << ", v"
-               << v << ") as visited" << endl;
-#endif
-        }
-      }
-#endif
-#endif
     } else {
-#ifdef PRUNING_BY_EQUIVALENCE_SETS
       Stack& ancElem = element[order[mapTo[v]]];
       c = unit.cell[pos];
       ancElem.conflictCell[c >> 6] |= (1ULL << (c & 0x3f));
-#endif
     }
   }
-#ifdef MAPPING_FUNCTION_LOG
-  cout << "FindProblemLeafMatch (u: u" << u << ", l: " << label << ", uP: u"
-       << uP << "). uCandCounter: " << uCandCounter << ". NECNum: " << NECNum
-       << endl;
-#endif
   if (uCandCounter < NECNum) {
     for (int i = 0; i < unit.nAdjacent[0][pPos]; ++i) {
       pos = unit.adjacent[0][pPos][i];
@@ -2643,9 +1789,6 @@ inline long long FindProblemLeafMatch(int depth, Stack& elem, int u, int label,
       if (mapTo[v] < 0) {
         if (useFailingSet) {
           addInFailingSet(u, ancestors[depth]);
-#ifdef MAPPING_FUNCTION_LOG
-          printf("[%d] U = U u {u%d}!\n", depth, u);
-#endif
         }
       } else {
         if (useFailingSet) {
@@ -2660,11 +1803,6 @@ inline long long FindProblemLeafMatch(int depth, Stack& elem, int u, int label,
       elem.problemChild[elem.nProblemChild++] = u;
       for (int i = 0; i < unit.nAdjacent[0][pPos]; ++i) {
         int v = unit.candidates[unit.adjacent[0][pPos][i]];
-#ifdef MAPPING_FUNCTION_LOG
-        if (mapTo[v] < 0)
-          cout << "FindProblemLeafMatch. M[u" << u << "]: v" << v << ", Mark v"
-               << v << " as visited" << endl;
-#endif
         if (mapTo[v] < 0) mapTo[v] = u;
       }
       isMapped[u] = true;
@@ -2676,10 +1814,6 @@ inline long long FindProblemLeafMatch(int depth, Stack& elem, int u, int label,
 inline void ReleaseProblemLeafMatch(Stack& elem, int uP, Stack& childElem) {
   for (int idx = 0; idx < elem.nProblemChild; ++idx) {
     int u = elem.problemChild[idx];
-#ifdef MAPPING_FUNCTION_LOG
-    cout << "ReleaseProblemLeafMatch. Release a problem child u" << u << "("
-         << idx << ") of u" << uP << endl;
-#endif
     CandidateSpace& unit = candSpace[u];
     for (int i = 0; i < unit.nAdjacent[0][candPos[uP]]; ++i) {
       int v = unit.candidates[unit.adjacent[0][candPos[uP]][i]];
@@ -2689,7 +1823,6 @@ inline void ReleaseProblemLeafMatch(Stack& elem, int uP, Stack& childElem) {
   }
   elem.nProblemChild = 0;
 }
-#endif
 
 void printArray(int* a, int n) {
   printf("cnt:%d\n", n);
@@ -2708,29 +1841,23 @@ long long getExtendableCandidates(int u, int uIdx, int up, int candParentIdx,
 
   iecSize[u][iecPos] = 0;
   if (numParentsMapped == 1) {
-#ifdef PRUNING_BY_EQUIVALENCE_SETS
     GetCell(*currQ, u, order[up], unit.adjacent[uNgbIdx][candParentIdx],
             unit.nAdjacent[uNgbIdx][candParentIdx]);
-#endif
     for (int i = 0; i < unit.nAdjacent[uNgbIdx][candParentIdx]; i++) {
       const int candIdx = unit.adjacent[uNgbIdx][candParentIdx][i];
       const int vID = unit.candidates[candIdx];
       iec[u][0][iecSize[u][0]++] = candIdx;
-#ifdef PRUNING_BY_EQUIVALENCE_SETS
       if (mapTo[vID] < 0) {
         Stack& ancElem = element[order[mapTo[vID]]];
         c = unit.cell[candIdx];
         ancElem.conflictCell[c >> 6] |= (1ULL << (c & 0x3f));
       }
-#endif
     }
   } else {
     int j = 0, k = 0, candIdx, newCandIdx;
     int indexSize = iecSize[u][iecPos - 1];
     int newIndexSize = unit.nAdjacent[uNgbIdx][candParentIdx];
-#ifdef PRUNING_BY_EQUIVALENCE_SETS
     GetCell(*currQ, u, order[up], iec[u][iecPos - 1], indexSize);
-#endif
     while (j < indexSize and k < newIndexSize) {
       candIdx = iec[u][iecPos - 1][j];
       newCandIdx = unit.adjacent[uNgbIdx][candParentIdx][k];
@@ -2738,13 +1865,11 @@ long long getExtendableCandidates(int u, int uIdx, int up, int candParentIdx,
         const int vID = unit.candidates[candIdx];
         if (useFailingSet) {
           iec[u][iecPos][iecSize[u][iecPos]++] = candIdx;
-#ifdef PRUNING_BY_EQUIVALENCE_SETS
           if (mapTo[vID] >= 0) {
             Stack& ancElem = element[order[mapTo[vID]]];
             c = unit.cell[candIdx];
             ancElem.conflictCell[c >> 6] |= (1ULL << (c & 0x3f));
           }
-#endif
         } else {
           if (mapTo[vID] < 0) {
             iec[u][iecPos][iecSize[u][iecPos]++] = candIdx;
@@ -2771,41 +1896,21 @@ inline void reset(int depth, int ri, int rootCand) {
       --nMappedParent[DAG_ngb_query[uID][i]];
     }
     queueFllExt.clear_nInserted(depth);
-#ifdef LEAF_ADAPTIVE_MATCHING
     ReleaseProblemLeafMatch(tempE, uID, element[depth + 1]);
-#endif
     mapTo[vID] = -1;
-#ifdef PRUNING_BY_EQUIVALENCE_SETS
     while (tempE.nPruned != 0)
       tempE.isPruned[tempE.pruned[--tempE.nPruned]] = false;
     Stack& higherE = element[depth - 1];
-#ifdef SUBGRAPH_MATCHING
-    Deactivate(tempE, depth);
-    higherE.nFoundMatch[higherE.addressPos] =
-        nMatch - higherE.nFoundMatch[higherE.addressPos];
-#endif
     GetEquivalence(higherE);
-#endif
     tempE.address = NULL;
     --depth;
   }
-#ifdef LEAF_ADAPTIVE_MATCHING
   ReleaseProblemLeafMatch(element[0], root, element[1]);
-#endif
   mapTo[rootCand] = -1;
   queueFllExt.clearQueue();
-#ifdef MAPPING_FUNCTION_LOG
-  printf("[%d] 5(R). Clear Q. Mark v%d as unvisited.\n", depth, rootCand);
-#endif
   if (useFailingSet) isRedundant = false;
-#ifdef PRUNING_BY_EQUIVALENCE_SETS
   Stack& rootE = element[0];
-#ifdef SUBGRAPH_MATCHING
-  rootE.nFoundMatch[ri] = nMatch - rootE.nFoundMatch[ri];
-  Deactivate(rootE, 0);
-#endif
   GetEquivalence(rootE);
-#endif
 }
 
 void updateExtendableRoot(const Graph& query, int ri, int u, int depth = 1) {
@@ -2813,24 +1918,13 @@ void updateExtendableRoot(const Graph& query, int ri, int u, int depth = 1) {
   for (int j = 0; j < DAG_ngb_query_size[u]; ++j) {
     int rc = DAG_ngb_query[u][j];
     if (query.NECMap[rc] != -1) {
-#ifdef LEAF_ADAPTIVE_MATCHING
       if (query.isProblemLeaf[rc])
         weight = FindProblemLeafMatch(0, element[0], rc, query.label[rc], root);
-#endif
     } else {
-#ifdef MAPPING_FUNCTION_LOG
-      printf("[%d] 4(R). For a child u%d (%d) of r in dag(q)\n", depth - 1, rc,
-             j);
-#endif
-
       weight = getExtendableCandidates(rc, j, u, ri, nMappedParent[rc]);
 
       if (nMappedParent[rc] == 1) {
         queueFllExt.insertToQueue(rc);
-#ifdef MAPPING_FUNCTION_LOG
-        printf("[%d] 4(R). Insert (u%d, w: %ld) to Q.\n", depth - 1, rc,
-               weight);
-#endif
       }
     }
   }  // 3. end for
@@ -2845,47 +1939,24 @@ bool updateExtendableU(const Graph& query, int u, int depth, const int uPos,
 
     if (isMapped[uC]) continue;
 
-#ifdef LEAF_ADAPTIVE_MATCHING
     if (query.isProblemLeaf[uC])
       weight = FindProblemLeafMatch(depth, *currE, uC, query.label[uC], uCurr);
     else if (query.NECMap[uC] != -1)
       continue;
-#else
-    if (query.NECMap[uC] != -1) continue;
-#endif
     else {
       weight = getExtendableCandidates(uC, j, uCurr, uPos, nMappedParent[uC]);
-#ifdef MAPPING_FUNCTION_LOG
-      printf(
-          "[%d] 4. Get weight of child u%d (%d < %d) of u%d with %d(<=%d) "
-          "parents mapped: %ld\n",
-          depth, uC, j, DAG_child_query_size[uCurr], uCurr, nMappedParent[uC],
-          DAG_parent_query_size[uC], weight);
-#endif
     }
     if (weight == 0) {
       flag = false;
       if (useFailingSet) {
         addInFailingSet(uC, ancestors[depth]);
-// ancestors[depth][uC >> 6] |= (1ULL << (uC & 0x3f));
-#ifdef MAPPING_FUNCTION_LOG
-        printf("[%d] U = U u {u%d}!\n", depth, uC);
-#endif
-      }  // if (useFailingSet)
-#ifdef MAPPING_FUNCTION_LOG
-      printf("[%d] 4f. Flag = false\n", depth);
-#endif
+      }
       break;
     }
-#ifdef LEAF_ADAPTIVE_MATCHING
     if (query.isProblemLeaf[uC]) continue;
-#endif
     if (nMappedParent[uC] == 1) {
       queueFllExt.insertToQueue(uC);
       queueFllExt.add_nInserted(depth);
-#ifdef MAPPING_FUNCTION_LOG
-      printf("[%d] 5(1). Insert (u%d, w: %ld) to Q.\n", depth, uC, weight);
-#endif
     }
   }
   return flag;
@@ -2894,28 +1965,19 @@ bool updateExtendableU(const Graph& query, int u, int depth, const int uPos,
 void updateReleaseCandidate(int depth) {
   Stack& higherE = element[depth];
   Stack& lowerE = element[depth + 1];
-#ifdef LEAF_ADAPTIVE_MATCHING
   ReleaseProblemLeafMatch(higherE, higherE.vertex, lowerE);
-#endif
   mapTo[currMapping[depth]] = -1;
   queueFllExt.removeFromQueue(depth);
   queueFllExt.clear_nInserted(depth);
 }
-#ifdef PRUNING_BY_EQUIVALENCE_SETS
 void updateCellInfo(int depth) {
   Stack& lowerE = element[depth];
   while (lowerE.nPruned != 0)
     lowerE.isPruned[lowerE.pruned[--lowerE.nPruned]] = false;
 
   Stack& higherE = element[depth - 1];
-#ifdef SUBGRAPH_MATCHING
-  Deactivate(*currE, depth);
-  higherE.nFoundMatch[higherE.addressPos] =
-      nMatch - higherE.nFoundMatch[higherE.addressPos];
-#endif
   GetEquivalence(higherE);
 }
-#endif
 void updateAncestors(int uCurr) {
   for (int i = 0; i < DAG_ngb_query_size[uCurr]; ++i) {
     int uC = DAG_ngb_query[uCurr][i];
@@ -2929,9 +1991,7 @@ void updateAncestors(int uCurr) {
 int updateMappingQueryVer(int uCurr, int depth, int& uPPos,
                           const CandidateSpace* currSet) {
   isMapped[uCurr] = true;
-#ifdef PRUNING_BY_EQUIVALENCE_SETS
   order[uCurr] = depth;
-#endif
   updateAncestors(uCurr);
   if (useFailingSet) {
     for (int x = 0; x < FAILING_SET_SIZE; ++x) {
@@ -2940,9 +2000,6 @@ int updateMappingQueryVer(int uCurr, int depth, int& uPPos,
   }
   currE->address = iec[uCurr][nMappedParent[uCurr] - 1];
   currE->addressSize = iecSize[uCurr][nMappedParent[uCurr] - 1];
-#ifdef CANDIDATE_VERTEX_WITH_MAX
-  memset(currE->isVisited, false, sizeof(bool) * currE->addressSize);
-#endif
 }
 
 void updateReleaseQueryVer(int uCurr, int depth) {
@@ -2960,23 +2017,7 @@ int getNextuPosIdx() {
   weight_type currVal, maxVal;
   int optOffset;
   int uPosIdx;
-#ifdef CANDIDATE_VERTEX_WITH_MAX
-  maxVal = WEIGHT_MIN;
-  for (int y = 0; y < currE->addressSize; ++y) {
-    if (currE->isVisited[y]) continue;
-    currVal = currSet->weight[currE->address[y]];
-    if (currVal > maxVal) {
-      optOffset = y;
-      maxVal = currVal;
-    }
-  }
-  // uPos = currE->address[optOffset];
-  currE->isVisited[optOffset] = true;
-  uPosIdx = optOffset;
-#else
   uPosIdx = currE->addressPos;
-// uPos = currE->address[currE->addressPos];
-#endif
   return uPosIdx;
 }
 
@@ -2987,7 +2028,6 @@ void updateFailingSet(int depth, bool isRedundant) {
       while (arr) {
         int idx = (x << 6) + __builtin_ctzl(arr);
         for (int y = 0; y < FAILING_SET_SIZE; ++y) {
-          // currE->failingSet[y] |= DAG_ancestor[idx][y];
           currE->failingSet[y] |=
               dyanc.getSetPartition(idx, nMappedParent[idx], y);
         }
@@ -2996,10 +2036,6 @@ void updateFailingSet(int depth, bool isRedundant) {
     }
     ancestors[depth][x] = 0;
   }
-#ifdef MAPPING_FUNCTION_LOG
-  cout << "[" << depth << "] Return: " << bitset<64>(currE->failingSet[0])
-       << endl;
-#endif
 }
 
 void moveUpFailingSet(const Stack& higherE, int depth) {
@@ -3013,42 +2049,19 @@ void moveUpFailingSet(const Stack& higherE, int depth) {
       for (int x = 0; x < FAILING_SET_SIZE; ++x) higherE.failingSet[x] |= b[x];
     }
   }
-#ifdef MAPPING_FUNCTION_LOG
-  printf("[%d] Set Redundant = %s\n", depth, isRedundant ? "true" : "false");
-  cout << "[" << depth << "] F_M: " << bitset<64>(higherE.failingSet[0])
-       << endl;
-#endif
 }
 
 inline bool findAllEmbeddings(int dataGraphID) {
-#ifdef SUBGRAPH_MATCHING
-  if (nMatch >= nMaxMatch) return true;
-#else
   if (answer[dataGraphID]) return true;
-#endif
   return false;
 }
 
 inline bool cannotMap(int dataGraphID) {
-  if (currE->addressPos == currE->addressSize || isRedundant) {
+  if (currE->addressPos == currE->addressSize || isRedundant ||
+      answer[dataGraphID]) {
     return true;
-  } else {
-#ifdef MULTIPLE_QUERIES
-    if (exceedTimeLimit) {
-      return true;
-    }
-#endif
-#if SUBGRAPH_MATCHING
-    if (nMatch >= nMaxMatch) {
-      return true;
-    }
-#else
-    if (answer[dataGraphID]) {
-      return true;
-    }
-#endif
-    return false;
   }
+  return false;
 }
 
 inline void Backtrack(const Graph& query, const Graph& data, int dataGraphID) {
@@ -3069,7 +2082,6 @@ inline void Backtrack(const Graph& query, const Graph& data, int dataGraphID) {
       memset(ancestors[i], 0, sizeof(uint64_t) * FAILING_SET_SIZE);
   }
   Stack& rootE = element[0];
-#ifdef PRUNING_BY_EQUIVALENCE_SETS
   order[root] = 0;
   while (rootE.nPruned != 0)
     rootE.isPruned[rootE.pruned[--rootE.nPruned]] = false;
@@ -3078,7 +2090,6 @@ inline void Backtrack(const Graph& query, const Graph& data, int dataGraphID) {
     while (currSet.nCellVertex != 0)
       currSet.cell[currSet.cellVertex[--currSet.nCellVertex]] = -1;
   }
-#endif
   isMapped[root] = true;
 
   updateAncestors(root);
@@ -3087,138 +2098,54 @@ inline void Backtrack(const Graph& query, const Graph& data, int dataGraphID) {
   rootE.address = candSpace[root].candidates;
   rootE.addressPos = -1;
   rootE.addressSize = candSpace[root].size;
-#ifdef PRUNING_BY_EQUIVALENCE_SETS
   GetCell(query, root, 0, NULL, -1);
-#endif
   recursiveCallCountPerGraph = 1;
   ++recursiveCallCount;
-#ifdef MAPPING_FUNCTION_LOG
-  printf("[0] 1(R). Select a root vertex u%d (N(rec): %ld).\n", root,
-         recursiveCallCount);
-#endif
-#ifdef CANDIDATE_VERTEX_WITH_MAX
-  int optOffset;
-  weight_type currVal, maxVal;
-  rootE.addressPos = 0;
-  memset(rootE.isVisited, false, sizeof(bool) * candSpace[root].size);
-  while (rootE.addressPos < rootE.addressSize)
-#else
-  for (int ri = 0; ri < candSpace[root].size; ++ri)
-#endif
-  {
+  for (int ri = 0; ri < candSpace[root].size; ++ri) {
     if (findAllEmbeddings(dataGraphID)) {
       break;
     }
     // 1. For each data vertex v in r.C
     ++rootE.addressPos;
     int rootCand = candSpace[root].candidates[ri];
-#ifdef MAPPING_FUNCTION_LOG
-    printf("[0] 2(R). For candidate v%d(of g%d) in C(u%d) (size:%d)\n",
-           rootCand, dataGraphID, root, candSpace[root].size);
-#endif
-#ifdef PRUNING_BY_EQUIVALENCE_SETS
     if (rootE.isPruned[ri]) {
-#ifdef SUBGRAPH_MATCHING
-      nMatch += rootE.nFoundMatch[ri];
-#endif
       continue;
     } else {
-#ifdef SUBGRAPH_MATCHING
-      rootE.nFoundMatch[ri] = nMatch;
-      int rCell = candSpace[root].cell[ri];
-      if (rCell > 0) {
-        for (int y = cellPos[rCell - 1]; y < cellPos[rCell]; ++y) {
-          if (isVisited[cellList[y]] == 0) {
-            arrayToClean[toCleanIndex++] = cellList[y];
-          }
-          isVisited[cellList[y]] = 1;
-        }
-        for (int idx = rootE.addressPos; idx < rootE.addressSize; ++idx) {
-          int v = candSpace[root].candidates[idx];
-          if (isVisited[v] != 0) {
-            rootE.neverVisited[idx] = true;
-#ifdef MAPPING_FUNCTION_LOG
-            cout << "[0] Set (d: 0, u" << root << "(R), v" << v
-                 << ") as never visited(" << nActive[v] << ")" << endl;
-#endif
-            active[v][0] = make_pair(0, idx);
-            nActive[v] = 1;
-          }
-        }
-        while (toCleanIndex != 0) isVisited[arrayToClean[--toCleanIndex]] = 0;
-      }
-#endif
       for (int x = 0; x < CELL_SIZE; ++x) rootE.conflictCell[x] = 0;
     }
-#endif
     mapTo[rootCand] = root;
     currMapping[0] = rootCand;  // M(r) = v
     candPos[root] = ri;
     char backtrack = 0;
-#ifdef MAPPING_FUNCTION_LOG
-    printf("[0] 3(R). M[u%d]: v%d, Mark v%d as visited (%lf matches)\n", root,
-           rootCand, rootCand, nMatch);
-#endif
     // must reset this to 1 here
     int depth = 1;  // the current query index of the query sequence, because 0
                     // is the root has already been matched
     // 3. For each child uc of r in dag(q)
     updateExtendableRoot(query, ri, root);
     while (true) {
-      if (depth == 0) break;  //"No MATCH found!"
+      if (depth == 0) break;  // "No MATCH found!"
       if (depth == query.nNonLeaf) {
-//======= HERE, we continue to find the full mapping for this core mapping
-// do not return now continue to the roll back process
-#ifdef MAPPING_FUNCTION_LOG
-        printf(
-            "Found a partial embedding of non-leaves: N(non-leaves) = %d, "
-            "N(leaves): %d\n",
-            query.nNonLeaf, query.numNECMapping);
-#endif
         if (query.numNECMapping != 0) {
           nCurrMatch = CountLeafMatch(query, nMatch);
-#ifdef SUBGRAPH_MATCHING
-          nMatch += nCurrMatch;
-#else
           if (nCurrMatch > 0 && !answer[dataGraphID]) {
             ++nMatch;
             answer[dataGraphID] = true;
           }
-#endif
         } else {
           nCurrMatch = 1;
-#ifdef SUBGRAPH_MATCHING
-          ++nMatch;
-#else
           if (!answer[dataGraphID]) ++nMatch;
-#endif
           answer[dataGraphID] = true;
         }
-#ifdef MAPPING_FUNCTION_LOG
-        printf(
-            "For v%d(pos: %d)(g%d) in C(r), N(total match): %lf, N(match just "
-            "found): %lf\n",
-            rootCand, ri, dataGraphID, nMatch, nCurrMatch);
-#endif
         if (findAllEmbeddings(dataGraphID)) {
           element[depth].address = NULL;
           --depth;
-#ifdef MAPPING_FUNCTION_LOG
-          printf("[%d] Report M as an embedding of q in G\n", depth);
-#endif
           reset(depth, ri, rootCand);
           return;
         }
 
-#ifdef PRUNING_BY_EQUIVALENCE_SETS
         updateCellInfo(depth);
-#endif
         --depth;
         updateReleaseCandidate(depth);
-
-#ifdef MAPPING_FUNCTION_LOG
-        printf("[%d] 6. Mark v%d as unvisited.\n", depth, currMapping[depth]);
-#endif
         if (useFailingSet) {
           for (int x = 0; x < FAILING_SET_SIZE; ++x)
             element[depth].failingSet[x] = ~0ULL;
@@ -3231,41 +2158,22 @@ inline void Backtrack(const Graph& query, const Graph& data, int dataGraphID) {
         ++recursiveCallCount;
         ++recursiveCallCountPerGraph;
         queueFllExt.popFromQueue(uCurr, depth);
-#ifdef MAPPING_FUNCTION_LOG
-        printf("[%d] 1. Select a vertex u%d to match (N(rec): %ld).\n", depth,
-               uCurr, recursiveCallCount);
-#endif
 
         currE->vertex = uCurr;
         currSet = &candSpace[uCurr];
 
         updateMappingQueryVer(uCurr, depth, uPPos, currSet);
-
-#ifdef MAPPING_FUNCTION_LOG
-        string temp = "";
-        for (int i = 0; i < currE->addressSize; ++i)
-          temp += " " + to_string(currSet->candidates[currE->address[i]]) +
-                  "(" + to_string(currE->address[i]) + ")";
-        printf("[%d] For each v in C_M(u):%s (size: %d).\n", depth,
-               temp.c_str(), currE->addressSize);
-        printf("[%d] Redundant? %s\n", depth, isRedundant ? "true" : "false");
-#endif
         if (currE->addressSize == 0) {
           currE->address = NULL;
           isRedundant = false;
           if (depth != 0) {
-#ifdef MAPPING_FUNCTION_LOG
-            printf("[%d] 7. Reinsert u%d to Q!\n", depth, uCurr);
-#endif
             if (useFailingSet) {
               updateFailingSet(depth, isRedundant);
             }
             updateReleaseQueryVer(uCurr, depth);
           }         // if (depth != 0)
           --depth;  // roll back one node in the matching sequence
-
           // updateReleaseCandidate(depth);
-
           continue;
         }  // if (currE->addressSize == 0 || isRedundant)
         currE->addressPos = 0;
@@ -3275,51 +2183,31 @@ inline void Backtrack(const Graph& query, const Graph& data, int dataGraphID) {
         currSet = &candSpace[uCurr];
         currE->addressPos++;  // update the index by one
 
-#if defined(SUBGRAPH_MATCHING) && defined(MULTIPLE_QUERIES)
-        quotient = recursiveCallCount >> 27;
-        if (quotient > lastQuotient) {
-          lastQuotient = quotient;
-          endPoint = GetClock();
-          elapsedTime = TimeDiffInMilliseconds(startPoint, endPoint);
-          exceedTimeLimit = (elapsedTime > timeLimit) ? true : false;
-        }
-#endif
         if (cannotMap(dataGraphID)) {
-#ifdef MAPPING_FUNCTION_LOG
-          printf("[%d] 7. Reinsert u%d to Q!!\n", depth, uCurr);
-          printf("[%d] Redundant? %s\n", depth, isRedundant ? "true" : "false");
-#endif
           if (useFailingSet) {
             updateFailingSet(depth, isRedundant);
             isRedundant = false;
           }
           updateReleaseQueryVer(uCurr, depth);
-#ifdef PRUNING_BY_EQUIVALENCE_SETS
           updateCellInfo(depth);
-#endif
           Stack& higherE = element[depth - 1];
           currE->address = NULL;
           --depth;
           updateReleaseCandidate(depth);
 
-#ifdef MAPPING_FUNCTION_LOG
-          printf("[%d] 6. Mark v%d as unvisited\n", depth, currMapping[depth]);
-#endif
           uID = higherE.vertex;
           if (useFailingSet) {
             moveUpFailingSet(higherE, depth);
           }
           continue;
-        }  // if( currE->addressPos == currE->addressSize || isRedundant)
-      }    // if(currE->address == NULL)
+        }  // if (currE->addressPos == currE->addressSize || isRedundant)
+      }    // if (currE->address == NULL)
       backtrack = 0;  // actually, this line is not necessary, when processed
                       // here, the backtrack must be false...
       while (true) {
-// Break, until find a mapping for this node
-// or cannot find a mapping after examining all candidates
-// no recursive call count increase here!
-#ifdef SUBGRAPH_MATCHING
-#else
+        // Break, until find a mapping for this node
+        // or cannot find a mapping after examining all candidates
+        // no recursive call count increase here!
         if (answer[dataGraphID]) {
           while (depth != 0) {
             mapTo[currMapping[depth]] = -1;
@@ -3333,34 +2221,15 @@ inline void Backtrack(const Graph& query, const Graph& data, int dataGraphID) {
           mapTo[rootCand] = -1;
           break;
         }
-#endif
 
         int uPosIdx = getNextuPosIdx();
         uPos = currE->address[uPosIdx];
         vID = currSet->candidates[uPos];
-#ifdef MAPPING_FUNCTION_LOG
-        printf("[%d] 2. For candidate v%d (%d < %d) in C_M(u%d)\n", depth, vID,
-               currE->addressPos, currE->addressSize, uCurr);
-#endif
 
         if (mapTo[vID] < 0)  // if v is unvisited
         {
-#ifdef PRUNING_BY_EQUIVALENCE_SETS
           int cellID = currSet->cell[uPos];
           if (currE->isPruned[uPosIdx]) {
-#ifdef MAPPING_FUNCTION_LOG
-            printf("[%d] 3(*). v%d(%d) in C(u%d) will lead to failure.\n",
-                   depth, vID, currE->addressPos, currE->vertex);
-#endif
-#ifdef SUBGRAPH_MATCHING
-#ifdef MAPPING_FUNCTION_LOG
-            cout << "[" << depth << "] nMatch (" << nMatch << ") += E[u"
-                 << currE->vertex << "].nFoundMatch[" << currE->addressPos
-                 << "]";
-            cout << "(" << currE->nFoundMatch[currE->addressPos] << ")" << endl;
-#endif
-            nMatch += currE->nFoundMatch[currE->addressPos];
-#endif
             currE->addressPos++;
             if (currE->addressPos == currE->addressSize) {
               backtrack = 1;
@@ -3368,106 +2237,21 @@ inline void Backtrack(const Graph& query, const Graph& data, int dataGraphID) {
             }
             continue;
           }
-#endif
           currMapping[depth] = vID;  // 3. M(u) = v
           candPos[uCurr] = uPos;
           mapTo[vID] = uCurr;  // 3. Mark v as visited
-#ifdef MAPPING_FUNCTION_LOG
-          printf(
-              "[%d] 3. If v%d is unvisited, M[u%d]: v%d, Mark v%d as visited "
-              "(%lf matches)\n",
-              depth, vID, uCurr, vID, vID, nMatch);
-#endif
           if (usePathSizeOrder) {
             queueFllExt.set_minPosition(-1);
-#ifdef QUERY_VERTEX_WITH_MAX
-            queueFllExt.set_optWeight(WEIGHT_MIN);
-#else
             queueFllExt.set_optWeight(WEIGHT_MAX);
-#endif
           }
-#ifdef PRUNING_BY_EQUIVALENCE_SETS
-#ifdef SUBGRAPH_MATCHING
-          cellID = currSet->cell[uPos];
-          currE->nFoundMatch[currE->addressPos] = nMatch;
-          if (cellID > 0) {
-            for (int y = cellPos[cellID - 1]; y < cellPos[cellID]; ++y) {
-              if (isVisited[cellList[y]] == 0)
-                arrayToClean[toCleanIndex++] = cellList[y];
-              isVisited[cellList[y]] = 1;
-            }
-            for (int y = currE->addressPos; y < currE->addressSize; ++y) {
-              int idx = currE->address[y];
-              int v = currSet->candidates[idx];
-              if (isVisited[v] != 0) {
-                currE->neverVisited[y] = true;
-#ifdef MAPPING_FUNCTION_LOG
-                cout << "[" << depth << "] Set (d: " << depth << ", u"
-                     << currE->vertex << ", v" << v << "(" << y
-                     << ")) as never visited(|active|:" << nActive[v] << ")"
-                     << endl;
-#endif
-                for (int x = 0; x < nActive[v]; ++x) {
-                  int d = active[v][x].first;
-                  element[d].nonConflictCell[cellID >> 6] |=
-                      (1ULL << (cellID & 0x3f));
-                }
-                if (nActive[v] == 0)
-                  active[v][nActive[v]++] = make_pair(depth, y);
-                else {
-                  idx = active[v][nActive[v] - 1].first;
-                  if (idx < depth)
-                    active[v][nActive[v]++] = make_pair(depth, y);
-                  else
-                    active[v][nActive[v] - 1] = make_pair(depth, y);
-                }
-              }
-            }
-            while (toCleanIndex != 0)
-              isVisited[arrayToClean[--toCleanIndex]] = 0;
-          } else {
-            for (int x = 0; x < nActive[vID]; ++x) {
-              int d = active[vID][x].first;
-              int loc = active[vID][x].second;
-              element[d].neverVisited[loc] = false;
-#ifdef MAPPING_FUNCTION_LOG
-              cout << "[" << depth << "] Set (d: " << d << ", u"
-                   << element[d].vertex << ", v" << vID << "(" << loc
-                   << ")) as visited(" << x << ")" << endl;
-#endif
-            }
-          }
-#endif
           for (int x = 0; x < CELL_SIZE; ++x) {
             currE->conflictCell[x] = 0;
-#ifdef SUBGRAPH_MATCHING
-            currE->nonConflictCell[x] = 0;
-#endif
           }
-#endif
-          // 4. For each child uc of u in dag(q) s.t. all parents of uc has been
-          // mapped
+          // 4. For each child uc of u in dag(q) s.t.
+          // all parents of uc has been mapped
           if (!updateExtendableU(query, uCurr, depth, uPos, uID, vCID)) {
-#ifdef PRUNING_BY_EQUIVALENCE_SETS
-#ifdef SUBGRAPH_MATCHING
-            if (cellID > 0) {
-              for (int y = currE->addressPos; y < currE->addressSize; ++y) {
-                int v = currSet->candidates[currE->address[y]];
-                if (nActive[v] > 0 && active[v][nActive[v] - 1].first == depth)
-                  --nActive[v];
-              }
-            }
-#endif
-#endif
             // 6. Remove just inserted vertices from Q
-
             updateReleaseCandidate(depth);
-
-#ifdef MAPPING_FUNCTION_LOG
-            printf("[%d] 6f. Mark v%d as unvisited.\n", depth,
-                   currMapping[depth]);
-#endif
-
             currE->addressPos++;
             if (currE->addressPos == currE->addressSize) {
               backtrack = 1;
@@ -3477,14 +2261,11 @@ inline void Backtrack(const Graph& query, const Graph& data, int dataGraphID) {
             }
           }
           break;
-        } else  // If vID is already visited
-        {
+        } else {  // If vID is already visited
           uID = mapTo[vID];
-#ifdef PRUNING_BY_EQUIVALENCE_SETS
           int cellID = currSet->cell[uPos];
           Stack& ancElem = element[order[uID]];
           ancElem.conflictCell[cellID >> 6] |= (1ULL << (cellID & 0x3f));
-#endif
           if (useFailingSet) {
             conflictClass(uCurr, uID, depth);
           }
@@ -3497,14 +2278,7 @@ inline void Backtrack(const Graph& query, const Graph& data, int dataGraphID) {
           }
         }
       }  // end while
-#ifdef SUBGRAPH_MATCHING
-#else
       if (answer[dataGraphID]) break;
-#endif
-#ifdef MAPPING_FUNCTION_LOG
-      printf("[%d] Backtrack? %s, Flag: %s\n", depth,
-             backtrack ? "true" : "false", flag ? "true" : "false");
-#endif
       if (backtrack) {
         backtrack = 0;
         // 7. Reinsert (u, weight) to Q.
@@ -3513,20 +2287,12 @@ inline void Backtrack(const Graph& query, const Graph& data, int dataGraphID) {
           isRedundant = false;
         }
         updateReleaseQueryVer(uCurr, depth);
-
-#ifdef PRUNING_BY_EQUIVALENCE_SETS
         updateCellInfo(depth);
-#endif
-
         currE->address = NULL;
         --depth;
 
         Stack& higherE = element[depth];
         updateReleaseCandidate(depth);
-
-#ifdef MAPPING_FUNCTION_LOG
-        printf("[%d] 6. Mark v%d as unvisited.\n", depth, currMapping[depth]);
-#endif
         uID = higherE.vertex;
         if (useFailingSet) {
           moveUpFailingSet(higherE, depth);
