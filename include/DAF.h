@@ -28,6 +28,32 @@ int orderDAG[MAX_NUM_VERTEX];
 // Temporary variables
 uint64_t* b;
 
+struct dynamicDAG_ancestors {
+ private:
+  uint64_t dag_ancestors[MAX_NUM_VERTEX][MAX_NUM_VERTEX][MAX_NUM_VERTEX];
+  // vertex depth partition
+ public:
+  void clear(int root) {
+    fill(dag_ancestors[root][0], dag_ancestors[root][0] + FAILING_SET_SIZE,
+         0ULL);
+  }
+
+  void addAncestor(int u, int uP, int uNumPar, int uPNumPar) {
+    if (uNumPar == 1) {
+      fill(dag_ancestors[u][1], dag_ancestors[u][1] + FAILING_SET_SIZE, 0ULL);
+    }
+    for (int x = 0; x < FAILING_SET_SIZE; x++) {
+      dag_ancestors[u][uNumPar][x] = dag_ancestors[u][uNumPar - 1][x];
+      dag_ancestors[u][uNumPar][x] |= dag_ancestors[uP][uPNumPar][x];
+    }
+    addInFailingSet(uP, dag_ancestors[u][uNumPar]);
+  }
+
+  uint64_t getSetPartition(int u, int uNumPar, int y) const {
+    return dag_ancestors[u][uNumPar][y];
+  }
+} dyanc;
+
 inline bool FilterByCount(const Graph& query, const Graph& data) {
   if (query.nVertex > data.nVertex || query.nEdge > data.nEdge ||
       query.maxDegree > data.maxDegree ||
@@ -1462,32 +1488,6 @@ void conflictClass(int uCurr, int uID, int depth) {
   addInFailingSet(uID, currE->failingSet);
   addInFailingSet(uID, ancestors[depth]);
 }
-
-struct dynamicDAG_ancestors {
- private:
-  uint64_t dag_ancestors[MAX_NUM_VERTEX][MAX_NUM_VERTEX][MAX_NUM_VERTEX];
-  // vertex depth partition
- public:
-  void clear(int root) {
-    fill(dag_ancestors[root][0], dag_ancestors[root][0] + FAILING_SET_SIZE,
-         0ULL);
-  }
-
-  void addAncestor(int u, int uP, int uNumPar, int uPNumPar) {
-    if (uNumPar == 1) {
-      fill(dag_ancestors[u][1], dag_ancestors[u][1] + FAILING_SET_SIZE, 0ULL);
-    }
-    for (int x = 0; x < FAILING_SET_SIZE; x++) {
-      dag_ancestors[u][uNumPar][x] = dag_ancestors[u][uNumPar - 1][x];
-      dag_ancestors[u][uNumPar][x] |= dag_ancestors[uP][uPNumPar][x];
-    }
-    addInFailingSet(uP, dag_ancestors[u][uNumPar]);
-  }
-
-  uint64_t getSetPartition(int u, int uNumPar, int y) const {
-    return dag_ancestors[u][uNumPar][y];
-  }
-} dyanc;
 
 inline long long FindProblemLeafMatch(int depth, Stack& elem, int u, int label,
                                       int uP) {
