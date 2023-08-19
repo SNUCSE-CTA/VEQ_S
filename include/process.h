@@ -1,9 +1,18 @@
 #include <chrono>
 #include <fstream>
 #include <iostream>
+#include <vector>
 
 #include "graph.h"
 using namespace std;
+
+CandidateSpace candSpace[MAX_NUM_VERTEX];
+int uI;
+int nCandOffset;
+int globalCellID = 1;
+int* posArray;
+int* candArray;
+int* candOffset;
 
 // Basic variables for data graphs
 Graph* currG;

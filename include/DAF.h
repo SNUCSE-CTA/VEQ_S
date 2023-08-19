@@ -5,33 +5,9 @@
 
 #include <unordered_map>
 
-#include "structure.h"
+#include "memory.h"
 using namespace std;
 
-unordered_map<Array, int, ArrayHash> cellToID;
-int* cellPos;
-int* cellList;
-unordered_map<Array, int, ArrayHash>::iterator uIter;
-unordered_map<int, Array>::iterator iIter;
-int uI;
-int nCandOffset;
-int globalCellID = 1;
-int* posArray;
-int* candArray;
-int* candOffset;
-
-Stack element[MAX_NUM_VERTEX];
-Stack* currE;
-
-Queue queueFllExt;
-
-// Main result variables
-bool* answer;
-int nCandidate = 0;
-double nMatch, nCurrMatch, nRemainingMatch;
-const double nMaxMatch = 1;
-long long int recursiveCallCount = 0;
-long long int recursiveCallCountPerGraph;
 // Elapsed time variable used in the main function
 bool exceedTimeLimit;
 double filteringTime;
@@ -39,6 +15,7 @@ double verificationTime;
 double totalTime;
 
 int auxDataStructureSize;
+
 // File paths
 string dataGraphFile;
 string queryGraphFile;
@@ -46,215 +23,36 @@ string answerFile;
 
 int uSequence[MAX_NUM_VERTEX];
 int uSequenceSize = 0;
-
 int orderDAG[MAX_NUM_VERTEX];
-
-CandidateSpace candSpace[MAX_NUM_VERTEX];
-int* arrayToClean;
-int toCleanIndex = 0;
-char* isVisited;  // data count
-int* candToPos;   // data count
 
 // Temporary variables
 uint64_t* b;
 
-inline void AllocateForDataGraph() {
-#ifdef HUGE_GRAPH
-  DATAV = maxNumDataVertex + 10;
-  LABEL = nUniqueLabel + 10;
-  color = new int*[LABEL];
-  for (int i = 0; i < LABEL; i++) {
-    color[i] = new int[2];
-    for (int j = 0; j < 2; j++) {
-      color[i][j] = 0;
+struct dynamicDAG_ancestors {
+ private:
+  uint64_t dag_ancestors[MAX_NUM_VERTEX][MAX_NUM_VERTEX][MAX_NUM_VERTEX];
+  // vertex depth partition
+ public:
+  void clear(int root) {
+    fill(dag_ancestors[root][0], dag_ancestors[root][0] + FAILING_SET_SIZE,
+         0ULL);
+  }
+
+  void addAncestor(int u, int uP, int uNumPar, int uPNumPar) {
+    if (uNumPar == 1) {
+      fill(dag_ancestors[u][1], dag_ancestors[u][1] + FAILING_SET_SIZE, 0ULL);
     }
-  }
-  set_color = new int[LABEL];
-  for (int i = 0; i < LABEL; i++) {
-    set_color[i] = 0;
-  }
-  vis_adj = new int[DATAV];
-  for (int i = 0; i < DATAV; i++) {
-    vis_adj[i] = 0;
-  }
-  num_ngb_existence = new int*[DATAV];
-  for (int i = 0; i < DATAV; i++) {
-    num_ngb_existence[i] = new int[2];
-    for (int j = 0; j < 2; j++) {
-      num_ngb_existence[i][j] = 0;
+    for (int x = 0; x < FAILING_SET_SIZE; x++) {
+      dag_ancestors[u][uNumPar][x] = dag_ancestors[u][uNumPar - 1][x];
+      dag_ancestors[u][uNumPar][x] |= dag_ancestors[uP][uPNumPar][x];
     }
-  }
-  cnt_included_cs = new lint[DATAV];
-  for (int i = 0; i < DATAV; i++) {
-    cnt_included_cs[i] = (lint)(0);
-  }
-#endif
-  pairV = new int[maxNumDataVertex];
-
-  vCandIndex = new int[maxNumDataVertex];
-  memset(vCandIndex, 0, sizeof(int) * maxNumDataVertex);
-
-  flagSumNECCand = new int[maxNumDataVertex];
-  memset(flagSumNECCand, -1, sizeof(int) * maxNumDataVertex);
-
-  vCandInfo = new vector<pair<int, int>>[maxNumDataVertex];
-
-  sumNECCand = new int*[nUniqueLabel + 1];
-  for (int i = 0; i < (nUniqueLabel + 1); i++)
-    sumNECCand[i] = new int[maxNumCandidate];
-  nSumNECCand = new int[nUniqueLabel + 1]();
-
-  mapTo = new int[maxNumDataVertex];
-  memset(mapTo, -1, sizeof(int) * maxNumDataVertex);
-
-  arrayToClean = new int[maxNumDataVertex];
-  isVisited = new char[maxNumDataVertex];
-  memset(isVisited, 0, sizeof(char) * maxNumDataVertex);
-  candToPos = new int[maxNumDataVertex];
-  memset(candToPos, -1, sizeof(int) * maxNumDataVertex);
-
-  answer = new bool[nGraph];
-  memset(answer, false, sizeof(bool) * nGraph);
-#ifdef PRUNING_BY_EQUIVALENCE_SETS
-  cellPos = new int[maxNumCandidate];
-  cellList = new int[maxNumDataVertex];
-#endif
-}
-
-inline void Deallocate(Graph& query) {
-  delete[] query.NECMapping;
-  delete[] query.NECElement;
-  delete[] query.NECMap;
-  delete[] query.isProblemLeaf;
-  leafCand.clear();
-  delete[] leafCandInfo;
-  delete[] necMapping;
-  delete[] uCand;
-  delete[] pairU;
-  delete[] uCandInfo;
-  for (int i = 0; i < maxNumDataVertex; ++i) vCandInfo[i].clear();
-
-  for (int i = 0; i < nQueryVertex; i++) {
-    delete[] element[i].failingSet;
-    delete[] element[i].conflictCell;
-    delete[] element[i].isPruned;
-    delete[] element[i].pruned;
-    delete[] element[i].problemChild;
-    for (int j = 0; j < MAX_QUERY_DEGREE; j++) delete[] iec[i][j];
-    if (useFailingSet) delete[] ancestors[i];
+    addInFailingSet(uP, dag_ancestors[u][uNumPar]);
   }
 
-  // For BuildDAG
-  for (int i = 0; i < nQueryVertex; i++) {
-    delete[] DAG_parent_query[i];
+  uint64_t getSetPartition(int u, int uNumPar, int y) const {
+    return dag_ancestors[u][uNumPar][y];
   }
-  for (int i = 0; i < nQueryVertex; i++) {
-    delete[] DAG_ngb_query_ngb_index[i];
-    delete[] DAG_ngb_query[i];
-  }
-
-  // For ConstructAdjacencyList
-  for (int u = 0; u < nQueryVertex; ++u) {
-    CandidateSpace& currSet = candSpace[u];
-    delete[] currSet.candidates;
-    delete[] currSet.weight;
-    for (int k = 0; k < query.maxDegree; ++k) {
-      delete[] currSet.nAdjacent[k];
-      delete[] currSet.adjacent[k];
-      delete[] currSet.capacity[k];
-    }
-    delete[] currSet.capacity;
-    delete[] currSet.nAdjacent;
-    delete[] currSet.adjacent;
-
-    delete[] currSet.cell;
-    delete[] currSet.cellVertex;
-  }
-  delete[] posArray;
-  delete[] candArray;
-  delete[] candOffset;
-}
-
-inline void AllocateForQueryGraph(Graph& query) {
-  nQueryVertex = query.nVertex;
-  query.NECMapping = new int[nUniqueLabel * nQueryVertex];
-  query.NECElement = new Element[nUniqueLabel * nQueryVertex];
-  query.NECMap = new int[nQueryVertex];
-  query.isProblemLeaf = new bool[nQueryVertex];
-  FAILING_SET_SIZE = (nQueryVertex + 63) >> 6;
-
-  leafCandSize = nQueryVertex * maxNumDataVertex;
-  leafCand.resize(leafCandSize);  // tight upper bound
-  leafCandInfo = new pair<int, int>[(nUniqueLabel + 1) * nQueryVertex];
-  necMapping = new int[nQueryVertex + 1];
-  uCand = new int[nQueryVertex * maxNumCandidate];  // definite upper bound
-
-  pairU = new int[nQueryVertex + 1];
-
-  uCandInfo = new pair<int, int>[nQueryVertex *
-                                 maxNumCandidate];  // definite upper bound
-
-  memset(localFlagQuery, 0, sizeof(char) * nQueryVertex);
-
-  for (int i = 0; i < maxNumDataVertex; i++) vCandInfo[i].resize(nQueryVertex);
-
-  nMaxCell = maxNumCandidate;
-  CELL_SIZE = ((maxNumCandidate + 63) >> 6);
-  for (int i = 0; i < nQueryVertex; i++) {
-    element[i].failingSet = new uint64_t[FAILING_SET_SIZE];
-    element[i].conflictCell = new uint64_t[CELL_SIZE]();
-    element[i].isPruned = new bool[maxNumCandidate]();
-    element[i].nPruned = 0;
-    element[i].pruned = new int[maxNumCandidate];
-    element[i].problemChild = new int[query.maxDegree];
-    element[i].nProblemChild = 0;
-    for (int j = 0; j < MAX_QUERY_DEGREE; j++) iec[i][j] = new int[maxDegree];
-    if (useFailingSet) ancestors[i] = new uint64_t[FAILING_SET_SIZE];
-  }
-
-  // For BuildDAG
-  for (int i = 0; i < nQueryVertex; i++) {
-    DAG_parent_query[i] = new int[query.maxDegree];
-  }
-  for (int i = 0; i < nQueryVertex; i++) {
-    DAG_ngb_query[i] = new int[query.maxDegree];
-    DAG_ngb_query_ngb_index[i] = new int[query.maxDegree];
-  }
-
-  // For ConstructAdjacencyList
-  for (int u = 0; u < nQueryVertex; ++u) {
-    CandidateSpace& currSet = candSpace[u];
-    currSet.candidates = new int[maxNumCandidate];
-    currSet.weight = new long long[maxNumCandidate];
-    currSet.nAdjacent = new int*[query.maxDegree];
-    currSet.adjacent = new int**[query.maxDegree];
-    currSet.capacity = new int*[query.maxDegree];
-    for (int k = 0; k < query.maxDegree; ++k) {
-      currSet.nAdjacent[k] = new int[maxNumCandidate];
-      currSet.adjacent[k] = new int*[maxNumCandidate];
-      currSet.capacity[k] = new int[maxNumCandidate];
-      memset(currSet.capacity[k], 0, sizeof(int) * maxNumCandidate);
-    }
-    currSet.cell = new int[maxNumCandidate];
-    currSet.cellVertex = new int[maxNumCandidate];
-  }
-  posArray = new int[maxNumCandidate];
-  candArray = new int[maxNumCandidate];
-  candOffset = new int[maxNumCandidate];
-}
-
-inline void SetQueryGraphResource(Graph& query) {
-  globalCellID = 1;
-  cellToID.clear();
-  cellPos[0] = 0;
-  memset(visitedForQuery, 0, sizeof(char) * nQueryVertex);
-  memset(cntLabel, 0, sizeof(int) * nUniqueLabel);
-  for (int u = 0; u < nQueryVertex; ++u) {
-    candSpace[u].size = 0;
-    candSpace[u].nCellVertex = 0;
-    memset(candSpace[u].cell, -1, sizeof(int) * maxNumCandidate);
-  }
-}
+} dyanc;
 
 inline bool FilterByCount(const Graph& query, const Graph& data) {
   if (query.nVertex > data.nVertex || query.nEdge > data.nEdge ||
@@ -391,8 +189,8 @@ inline void ExtractResidualStructures(Graph& query) {
 
   sort(query.NECElement, query.NECElement + query.numNECMapping,
        sortByNECLabel);
-  // NECElement: a list of (label: lID, parentID: uP, representative: u, sum:
-  // |NEC(u)|) sorted in the ascending order of label ID
+  // NECElement: a list of (label: lID, parentID: uP, representative: u,
+  // sum: |NEC(u)|) sorted in the ascending order of label ID
 
   int sum;
   int lastLabel;
@@ -437,8 +235,8 @@ inline void ExtractResidualStructures(Graph& query) {
   }
   // NECElemtntOffset[i] = (l, pos)
   // l: label ID
-  // pos: the starting position of NEC vertices with label l in NECElement if l
-  // != -1, the last position of NECElement otherwise
+  // pos: the starting position of NEC vertices with label l in NECElement if
+  // l != -1, the last position of NECElement otherwise
 }
 
 inline void BuildDAG(Graph& query) {
@@ -512,10 +310,6 @@ inline void BuildDAG(Graph& query) {
     if (query.NECMap[i] == -1) ++query.nNonLeaf;
   }
 }
-
-enum direction { topDown, bottomUp };
-
-enum ngbType { parentNgb, childNgb, allNgb };
 
 inline bool filteringWithDAG(const Graph& query, const Graph& data,
                              direction filterDir, ngbType filterNgb,
@@ -1038,44 +832,6 @@ inline bool ConstructAdjacencyList(const Graph& query, const Graph& data,
   return true;
 }
 
-inline int partitionByNeighbor(int arr[], int uPos, int nbr, int nbrPos,
-                               int low, int high) {
-  int i = low - 1;
-  for (int j = low; j < high; ++j) {
-    bool exist = false;
-    while (posArray[arr[j]] < candSpace[nbr].nAdjacent[uPos][arr[j]] &&
-           candSpace[nbr].adjacent[uPos][arr[j]][posArray[arr[j]]] == nbrPos) {
-      exist = true;
-      ++posArray[arr[j]];
-    }
-    if (exist) swap(arr[++i], arr[j]);
-  }
-  return (i + 1);
-}
-inline void sortByNeighbor(int arr[], int index, int uPos, int nbr, int nbrPos,
-                           int low, int high) {
-  if (nbrPos >= candSpace[nbr].size) {
-    ++index;
-    if (index >= DAG_ngb_query_size[uI]) return;
-    nbr = DAG_ngb_query[uI][index];
-    while (currQ->NECMap[nbr] != -1 && currQ->NECMap[nbr] != nbr) {
-      ++index;
-      if (index >= DAG_ngb_query_size[uI]) return;
-      nbr = DAG_ngb_query[uI][index];
-    }
-    uPos = DAG_ngb_query_ngb_index[uI][index];
-
-    nbrPos = 0;
-    for (int x = low; x < high; ++x) posArray[arr[x]] = 0;
-  }
-  int pivot = partitionByNeighbor(arr, uPos, nbr, nbrPos, low, high);
-  if (pivot > low && pivot < high) candOffset[nCandOffset++] = pivot;
-  if (pivot - low > 1)
-    sortByNeighbor(arr, index, uPos, nbr, nbrPos + 1, low, pivot);
-  if (high - pivot > 1)
-    sortByNeighbor(arr, index, uPos, nbr, nbrPos + 1, pivot, high);
-}
-
 inline void GetCell(const Graph& query, int u, int d, int* extCand,
                     int nExtCand) {
   int uPos, nbr, nCand = 0;
@@ -1539,9 +1295,8 @@ inline double CountLeafMatch(const Graph& query, double matchFound) {
     // for next time use
     for (int i = 1; i < posSumNECCand; i++)  // it starts from 1 NOT 0
       flagSumNECCand[localSumNECCand[i]] = -1;
-    // == BEGIN checking MAXIMUM MATCHING
-    // ============================================== using nec_region as the
-    // adjacent list
+    // ================= BEGIN checking MAXIMUM MATCHING =================
+    // using nec_region as the adjacent list
     memset(pairU, NULL, sizeof(int) * nQueryVertex);  // must reset before using
     memset(pairV, NULL,
            sizeof(int) * currG->nVertex);  // must reset before using
@@ -1554,8 +1309,7 @@ inline double CountLeafMatch(const Graph& query, double matchFound) {
     if (matching != nodeIndex - 1) {
       return 0;
     }
-    // == END checking MAXIMUM MATCHING
-    // ==========================================
+    // ================== END checking MAXIMUM MATCHING ==================
     NECRank[i] = make_pair(i, make_pair(sumNEC, sumCand));
   }
   sort(NECRank, NECRank + NECSetSize, sortLLCNode);
@@ -1637,7 +1391,7 @@ inline double CountLeafMatch(const Graph& query, double matchFound) {
       // cleaned up using the above two parameters.
       int found = 1;
       while (found > 0) {
-        // ============= preprocess before the combination
+        // =============== preprocess before the combination ===============
         found = 0;
         // first, we scan each nec node, to see whether there exists such a node
         // that its candidate size is equal to its unmatched nec size
@@ -1710,7 +1464,7 @@ inline double CountLeafMatch(const Graph& query, double matchFound) {
           }  // end if
         }    // end for i
       }      // end PREPROCESSING
-      // ================== END PREPROCESSING ==============================
+      // ======================== END PREPROCESSING ========================
       combine(cntLocalMatchLabel, matchResult);
 
       // Clean up
@@ -1734,32 +1488,6 @@ void conflictClass(int uCurr, int uID, int depth) {
   addInFailingSet(uID, currE->failingSet);
   addInFailingSet(uID, ancestors[depth]);
 }
-
-struct dynamicDAG_ancestors {
- private:
-  uint64_t dag_ancestors[MAX_NUM_VERTEX][MAX_NUM_VERTEX][MAX_NUM_VERTEX];
-  // vertex depth partition
- public:
-  void clear(int root) {
-    fill(dag_ancestors[root][0], dag_ancestors[root][0] + FAILING_SET_SIZE,
-         0ULL);
-  }
-
-  void addAncestor(int u, int uP, int uNumPar, int uPNumPar) {
-    if (uNumPar == 1) {
-      fill(dag_ancestors[u][1], dag_ancestors[u][1] + FAILING_SET_SIZE, 0ULL);
-    }
-    for (int x = 0; x < FAILING_SET_SIZE; x++) {
-      dag_ancestors[u][uNumPar][x] = dag_ancestors[u][uNumPar - 1][x];
-      dag_ancestors[u][uNumPar][x] |= dag_ancestors[uP][uPNumPar][x];
-    }
-    addInFailingSet(uP, dag_ancestors[u][uNumPar]);
-  }
-
-  uint64_t getSetPartition(int u, int uNumPar, int y) const {
-    return dag_ancestors[u][uNumPar][y];
-  }
-} dyanc;
 
 inline long long FindProblemLeafMatch(int depth, Stack& elem, int u, int label,
                                       int uP) {
@@ -1822,14 +1550,6 @@ inline void ReleaseProblemLeafMatch(Stack& elem, int uP, Stack& childElem) {
     isMapped[u] = false;
   }
   elem.nProblemChild = 0;
-}
-
-void printArray(int* a, int n) {
-  printf("cnt:%d\n", n);
-  for (int i = 0; i < n; i++) {
-    printf("[%d]", a[i]);
-  }
-  puts("");
 }
 
 long long getExtendableCandidates(int u, int uIdx, int up, int candParentIdx,
@@ -1970,6 +1690,7 @@ void updateReleaseCandidate(int depth) {
   queueFllExt.removeFromQueue(depth);
   queueFllExt.clear_nInserted(depth);
 }
+
 void updateCellInfo(int depth) {
   Stack& lowerE = element[depth];
   while (lowerE.nPruned != 0)
@@ -1978,6 +1699,7 @@ void updateCellInfo(int depth) {
   Stack& higherE = element[depth - 1];
   GetEquivalence(higherE);
 }
+
 void updateAncestors(int uCurr) {
   for (int i = 0; i < DAG_ngb_query_size[uCurr]; ++i) {
     int uC = DAG_ngb_query[uCurr][i];
