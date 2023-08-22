@@ -18,7 +18,7 @@ all: $(VEQ_S)
 
 $(VEQ_S): $(SRC)/main.cpp
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(EXTRA_FLAGS) -c $(SRC)/main.cpp -o $(SRC)/main.o
-	$(CXX) $(CXXFLAGS) $(SRC)/main.o $(TEST_LIBS) -o $@
+	$(CXX) -g $(CXXFLAGS) $(SRC)/main.o $(TEST_LIBS) -o $@
 
 $(SRC)/%.o: $(SRC)/%.cpp
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c $< -o $@
@@ -28,7 +28,7 @@ clean:
 	$(RM) -rv $(OBJS)
 
 run: $(VEQ_S)
-	./$(VEQ_S) -dg graph/data/COLLAB.gfu -qg graph/query/COLLAB/randomwalk/8/q30.gfu -o output
+	./$(VEQ_S) -dg graph/data/COLLAB.gfu -qg graph/query/COLLAB/randomwalk/8/q30.gfu
 
 test: $(VEQ_S)
 	./$(VEQ_S) -test
