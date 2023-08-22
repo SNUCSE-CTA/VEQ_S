@@ -28,7 +28,7 @@ clean:
 	$(RM) -rv $(OBJS)
 
 run: $(VEQ_S)
-	./$(VEQ_S) -dg graph/data/COLLAB.gfu -qg graph/query/COLLAB/randomwalk/8/q30.gfu
+	./$(VEQ_S) -dg graph/data/COLLAB.gfu -qg graph/query/COLLAB/randomwalk/8/q30.gfu -o output
 
 test: $(VEQ_S)
 	./$(VEQ_S) -test
