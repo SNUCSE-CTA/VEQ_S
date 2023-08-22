@@ -1877,23 +1877,26 @@ inline void Backtrack(const Graph& query, const Graph& data, int dataGraphID) {
       currE = &element[depth];
       // Find \intersection_{u_p in u.p} (N^{u_p}_{u}(M(u_p)))
       if (currE->address == NULL) {
-        cout << "if (currE->address == NULL)" << endl;
         ++recursiveCallCount;
         ++recursiveCallCountPerGraph;
         queueFllExt.popFromQueue(uCurr, depth);
+        cout << "queueFllExt.popFromQueue(uCurr, depth);" << endl;
 
         currE->vertex = uCurr;
         currSet = &candSpace[uCurr];
 
         updateMappingQueryVer(uCurr, depth, uPPos, currSet);
+        cout << "updateMappingQueryVer(uCurr, depth, uPPos, currSet);" << endl;
         if (currE->addressSize == 0) {
           currE->address = NULL;
           isRedundant = false;
           if (depth != 0) {
             if (useFailingSet) {
               updateFailingSet(depth, isRedundant);
+              cout << "updateFailingSet(depth, isRedundant);" << endl;
             }
             updateReleaseQueryVer(uCurr, depth);
+            cout << "updateReleaseQueryVer(uCurr, depth);" << endl;
           }         // if (depth != 0)
           --depth;  // roll back one node in the matching sequence
           // updateReleaseCandidate(depth);
@@ -1902,7 +1905,6 @@ inline void Backtrack(const Graph& query, const Graph& data, int dataGraphID) {
         currE->addressPos = 0;
       } else  // currE->address != NULL
       {
-        cout << "else" << endl;
         uCurr = currE->vertex;
         currSet = &candSpace[uCurr];
         currE->addressPos++;  // update the index by one
@@ -1932,7 +1934,6 @@ inline void Backtrack(const Graph& query, const Graph& data, int dataGraphID) {
         // Break, until find a mapping for this node
         // or cannot find a mapping after examining all candidates
         // no recursive call count increase here!
-        cout << "while" << endl;
         if (answer[dataGraphID]) {
           while (depth != 0) {
             mapTo[currMapping[depth]] = -1;
