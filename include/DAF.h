@@ -1820,18 +1820,21 @@ inline void Backtrack(const Graph& query, const Graph& data, int dataGraphID) {
   isMapped[root] = true;
 
   updateAncestors(root);
+  cout << "updateAncestors" << endl;
 
   rootE.vertex = root;
   rootE.address = candSpace[root].candidates;
   rootE.addressPos = -1;
   rootE.addressSize = candSpace[root].size;
   GetCell(query, root, 0, NULL, -1);
+  cout << "GetCell" << endl;
   recursiveCallCountPerGraph = 1;
   ++recursiveCallCount;
   for (int ri = 0; ri < candSpace[root].size; ++ri) {
     if (findAllEmbeddings(dataGraphID)) {
       break;
     }
+    cout << "findAllEmbeddings" << endl;
     // 1. For each data vertex v in r.C
     ++rootE.addressPos;
     int rootCand = candSpace[root].candidates[ri];
@@ -1849,6 +1852,7 @@ inline void Backtrack(const Graph& query, const Graph& data, int dataGraphID) {
                     // is the root has already been matched
     // 3. For each child uc of r in dag(q)
     updateExtendableRoot(query, ri, root);
+    cout << "updateExtendableRoot" << endl;
     while (true) {
       if (depth == 0) break;  // "No MATCH found!"
       if (depth == query.nNonLeaf) {
@@ -1879,6 +1883,7 @@ inline void Backtrack(const Graph& query, const Graph& data, int dataGraphID) {
         }
         continue;
       }  // if (depth == query.nNonLeaf)
+      cout << "if (depth == query.nNonLeaf)" << endl;
       currE = &element[depth];
       // Find \intersection_{u_p in u.p} (N^{u_p}_{u}(M(u_p)))
       if (currE->address == NULL) {
@@ -1903,6 +1908,7 @@ inline void Backtrack(const Graph& query, const Graph& data, int dataGraphID) {
           // updateReleaseCandidate(depth);
           continue;
         }  // if (currE->addressSize == 0 || isRedundant)
+        cout << "if (currE->addressSize == 0 || isRedundant)" << endl;
         currE->addressPos = 0;
       } else  // currE->address != NULL
       {
