@@ -1718,13 +1718,11 @@ int updateMappingQueryVer(int uCurr, int depth, int& uPPos,
   if (useFailingSet) {
     for (int x = 0; x < FAILING_SET_SIZE; ++x) {
       currE->failingSet[x] = 0;
-      cout << "currE->failingSet[" << x << "]" << endl;
     }
   }
   currE->address = iec[uCurr][nMappedParent[uCurr] - 1];
-  cout << "currE->address" << endl;
   currE->addressSize = iecSize[uCurr][nMappedParent[uCurr] - 1];
-  cout << "currE->addressSize" << endl;
+  cout << "updateMappingQueryVer" << endl;
 }
 
 void updateReleaseQueryVer(int uCurr, int depth) {
@@ -1888,6 +1886,7 @@ inline void Backtrack(const Graph& query, const Graph& data, int dataGraphID) {
         currSet = &candSpace[uCurr];
 
         updateMappingQueryVer(uCurr, depth, uPPos, currSet);
+        cout << "updateMappingQueryVer(uCurr, depth, uPPos, currSet);" << endl;
         if (currE->addressSize == 0) {
           currE->address = NULL;
           isRedundant = false;
