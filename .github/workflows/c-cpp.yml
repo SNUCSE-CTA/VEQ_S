@@ -21,7 +21,7 @@ jobs:
       run: make
     - name: run gdb
       run: |
-        gdb ./VEQ_S -dg graph/data/COLLAB.gfu -qg graph/query/COLLAB/randomwalk/8/q30.gfu
+        gdb --args ./VEQ_S -dg graph/data/COLLAB.gfu -qg graph/query/COLLAB/randomwalk/8/q30.gfu
         run
         bt
     - name: make test
