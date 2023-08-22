@@ -39,9 +39,7 @@ inline void ProcessQuery() {
     recursiveCallCount = 0;
     currQ = queryGraph[x];
     AllocateForQueryGraph(*currQ);
-    cout << "AllocateForQueryGraph" << endl;
     GetQueryDataStructure(*currQ);
-    cout << "GetQueryDataStructure" << endl;
     isTree = true;
     for (int i = 0; i < nQueryVertex; i++) {
       if (currQ->core[i] >= 2) {
@@ -51,12 +49,10 @@ inline void ProcessQuery() {
     }
     for (int y = 0; y < dataGraph.size(); ++y) {
       SetQueryGraphResource(*currQ);
-      cout << "SetQueryGraphResource " << y << endl;
       currG = dataGraph[y];
       // CS filtering
       startClock = GetClock();
       isCandidate = BuildCS();
-      cout << "BuildCS " << y << endl;
       endClock = GetClock();
       filteringTime += TimeDiffInMilliseconds(startClock, endClock);
       if (!isCandidate) continue;
@@ -64,7 +60,6 @@ inline void ProcessQuery() {
       // Backtracking
       startClock = GetClock();
       Backtrack(*currQ, *currG, y);
-      cout << "Backtrack " << y << endl;
       endClock = GetClock();
       verificationTime += TimeDiffInMilliseconds(startClock, endClock);
     }

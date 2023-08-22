@@ -1795,13 +1795,18 @@ inline void Backtrack(const Graph& query, const Graph& data, int dataGraphID) {
   dyanc.clear(root);
   queueFllExt.clearQueue();
 
+  cout << "memset(isMapped) " << sizeof(bool) * nQueryVertex << endl;
   memset(isMapped, false, sizeof(bool) * nQueryVertex);
+  cout << "memset(nMappedParent) " << sizeof(int) * nQueryVertex << endl;
   memset(nMappedParent, 0, sizeof(int) * nQueryVertex);
 
   isRedundant = false;
   if (useFailingSet) {
-    for (int i = 0; i < nQueryVertex; ++i)
+    for (int i = 0; i < nQueryVertex; ++i) {
       memset(ancestors[i], 0, sizeof(uint64_t) * FAILING_SET_SIZE);
+      cout << "memset ancestors " << i << " "
+           << sizeof(uint64_t) * FAILING_SET_SIZE << endl;
+    }
   }
   Stack& rootE = element[0];
   order[root] = 0;
