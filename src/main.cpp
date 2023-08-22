@@ -200,6 +200,8 @@ int main(int argc, char* argv[]) {
   else
     ReadGFUFormat(queryGraphFile, queryGraph);
 
+  cout << "ReadGFUFormat" << endl;
+
   ProcessQuery();
 
   cout << "ProcessQuery" << endl;
