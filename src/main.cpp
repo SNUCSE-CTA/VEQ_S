@@ -1,5 +1,6 @@
 // Adaptive matching order with new extendable candidate definition
 #include <gtest/gtest.h>
+
 #include "DAF.h"
 
 void writeAnswer(string& answerFile) {
@@ -73,7 +74,8 @@ inline void ProcessQuery() {
   }
 }
 
-void compare(string dataGraphFile, const int queryCnt, string queryGraphFiles[], string resultFiles[]) {
+void compare(string dataGraphFile, const int queryCnt, string queryGraphFiles[],
+             string resultFiles[]) {
   ReadGFUFormat(dataGraphFile, dataGraph);
 
   ProcessDataGraphs();
@@ -101,9 +103,10 @@ void compare(string dataGraphFile, const int queryCnt, string queryGraphFiles[],
     EXPECT_EQ(nMatch, expectedResult[2]);
     vector<int>::iterator expectedResultIter = expectedResult.begin() + 3;
     for (int g = 0; g < nGraph; ++g) {
-      bool inExpectedResult = expectedResultIter != expectedResult.end() && *expectedResultIter == g;
+      bool inExpectedResult = expectedResultIter != expectedResult.end() &&
+                              *expectedResultIter == g;
       EXPECT_EQ(answer[g], inExpectedResult);
-      if(inExpectedResult) expectedResultIter++;
+      if (inExpectedResult) expectedResultIter++;
     }
   }
 }
@@ -180,8 +183,15 @@ int main(int argc, char* argv[]) {
   else
     ReadGFUFormat(dataGraphFile, dataGraph);
 
+  cout << "ReadGFUFormat" << endl;
+
   ProcessDataGraphs();
+
+  cout << "ProcessDataGraphs" << endl;
+
   AllocateForDataGraph();
+
+  cout << "AllocateForDataGraph" << endl;
 
   if (queryFormat == CFL_FORMAT)
     ReadCFLFormat(queryGraphFile, queryGraph);
@@ -191,5 +201,8 @@ int main(int argc, char* argv[]) {
     ReadGFUFormat(queryGraphFile, queryGraph);
 
   ProcessQuery();
+
+  cout << "ProcessQuery" << endl;
+
   return 0;
 }

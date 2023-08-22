@@ -17,8 +17,8 @@ VEQ_S := VEQ_S
 all: $(VEQ_S)
 
 $(VEQ_S): $(SRC)/main.cpp
-	$(CXX) -g $(CXXFLAGS) $(CPPFLAGS) $(EXTRA_FLAGS) -c $(SRC)/main.cpp -o $(SRC)/main.o
-	$(CXX) -g $(CXXFLAGS) $(SRC)/main.o $(TEST_LIBS) -o $@
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(EXTRA_FLAGS) -c $(SRC)/main.cpp -o $(SRC)/main.o
+	$(CXX) $(CXXFLAGS) $(SRC)/main.o $(TEST_LIBS) -o $@
 
 $(SRC)/%.o: $(SRC)/%.cpp
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c $< -o $@
