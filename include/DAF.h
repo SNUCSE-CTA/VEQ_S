@@ -1795,18 +1795,13 @@ inline void Backtrack(const Graph& query, const Graph& data, int dataGraphID) {
   dyanc.clear(root);
   queueFllExt.clearQueue();
 
-  cout << "memset(isMapped) " << sizeof(bool) * nQueryVertex << endl;
   memset(isMapped, false, sizeof(bool) * nQueryVertex);
-  cout << "memset(nMappedParent) " << sizeof(int) * nQueryVertex << endl;
   memset(nMappedParent, 0, sizeof(int) * nQueryVertex);
 
   isRedundant = false;
   if (useFailingSet) {
-    for (int i = 0; i < nQueryVertex; ++i) {
+    for (int i = 0; i < nQueryVertex; ++i)
       memset(ancestors[i], 0, sizeof(uint64_t) * FAILING_SET_SIZE);
-      cout << "memset ancestors " << i << " "
-           << sizeof(uint64_t) * FAILING_SET_SIZE << endl;
-    }
   }
   Stack& rootE = element[0];
   order[root] = 0;
@@ -1820,21 +1815,18 @@ inline void Backtrack(const Graph& query, const Graph& data, int dataGraphID) {
   isMapped[root] = true;
 
   updateAncestors(root);
-  cout << "updateAncestors" << endl;
 
   rootE.vertex = root;
   rootE.address = candSpace[root].candidates;
   rootE.addressPos = -1;
   rootE.addressSize = candSpace[root].size;
   GetCell(query, root, 0, NULL, -1);
-  cout << "GetCell" << endl;
   recursiveCallCountPerGraph = 1;
   ++recursiveCallCount;
   for (int ri = 0; ri < candSpace[root].size; ++ri) {
     if (findAllEmbeddings(dataGraphID)) {
       break;
     }
-    cout << "findAllEmbeddings" << endl;
     // 1. For each data vertex v in r.C
     ++rootE.addressPos;
     int rootCand = candSpace[root].candidates[ri];
@@ -1852,7 +1844,6 @@ inline void Backtrack(const Graph& query, const Graph& data, int dataGraphID) {
                     // is the root has already been matched
     // 3. For each child uc of r in dag(q)
     updateExtendableRoot(query, ri, root);
-    cout << "updateExtendableRoot" << endl;
     while (true) {
       if (depth == 0) break;  // "No MATCH found!"
       if (depth == query.nNonLeaf) {
@@ -1883,10 +1874,10 @@ inline void Backtrack(const Graph& query, const Graph& data, int dataGraphID) {
         }
         continue;
       }  // if (depth == query.nNonLeaf)
-      cout << "if (depth == query.nNonLeaf)" << endl;
       currE = &element[depth];
       // Find \intersection_{u_p in u.p} (N^{u_p}_{u}(M(u_p)))
       if (currE->address == NULL) {
+        cout << "if (currE->address == NULL)" << endl;
         ++recursiveCallCount;
         ++recursiveCallCountPerGraph;
         queueFllExt.popFromQueue(uCurr, depth);
@@ -1908,10 +1899,10 @@ inline void Backtrack(const Graph& query, const Graph& data, int dataGraphID) {
           // updateReleaseCandidate(depth);
           continue;
         }  // if (currE->addressSize == 0 || isRedundant)
-        cout << "if (currE->addressSize == 0 || isRedundant)" << endl;
         currE->addressPos = 0;
       } else  // currE->address != NULL
       {
+        cout << "else" << endl;
         uCurr = currE->vertex;
         currSet = &candSpace[uCurr];
         currE->addressPos++;  // update the index by one
@@ -1941,6 +1932,7 @@ inline void Backtrack(const Graph& query, const Graph& data, int dataGraphID) {
         // Break, until find a mapping for this node
         // or cannot find a mapping after examining all candidates
         // no recursive call count increase here!
+        cout << "while" << endl;
         if (answer[dataGraphID]) {
           while (depth != 0) {
             mapTo[currMapping[depth]] = -1;
