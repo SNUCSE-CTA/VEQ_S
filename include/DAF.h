@@ -1715,6 +1715,7 @@ int updateMappingQueryVer(int uCurr, int depth, int& uPPos,
   isMapped[uCurr] = true;
   order[uCurr] = depth;
   updateAncestors(uCurr);
+  cout << "updateAncestors(uCurr);" << endl;
   if (useFailingSet) {
     for (int x = 0; x < FAILING_SET_SIZE; ++x) {
       currE->failingSet[x] = 0;
@@ -1880,23 +1881,20 @@ inline void Backtrack(const Graph& query, const Graph& data, int dataGraphID) {
         ++recursiveCallCount;
         ++recursiveCallCountPerGraph;
         queueFllExt.popFromQueue(uCurr, depth);
-        cout << "queueFllExt.popFromQueue(uCurr, depth);" << endl;
 
         currE->vertex = uCurr;
         currSet = &candSpace[uCurr];
 
-        updateMappingQueryVer(uCurr, depth, uPPos, currSet);
         cout << "updateMappingQueryVer(uCurr, depth, uPPos, currSet);" << endl;
+        updateMappingQueryVer(uCurr, depth, uPPos, currSet);
         if (currE->addressSize == 0) {
           currE->address = NULL;
           isRedundant = false;
           if (depth != 0) {
             if (useFailingSet) {
               updateFailingSet(depth, isRedundant);
-              cout << "updateFailingSet(depth, isRedundant);" << endl;
             }
             updateReleaseQueryVer(uCurr, depth);
-            cout << "updateReleaseQueryVer(uCurr, depth);" << endl;
           }         // if (depth != 0)
           --depth;  // roll back one node in the matching sequence
           // updateReleaseCandidate(depth);
