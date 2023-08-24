@@ -44,8 +44,6 @@ vector<pair<int, int>>
     NECElementOffset;  // include a redunant element to set the end
 unordered_map<pair<int, int>, int, pairHash> NECChild;
 unordered_map<pair<int, int>, int, pairHash> NECSize;
-// int * NECMapping = NULL;
-// Element * NECElement;
 
 // Basic variables for query DAG
 int root;

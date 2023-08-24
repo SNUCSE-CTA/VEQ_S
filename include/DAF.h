@@ -14,16 +14,10 @@ double filteringTime;
 double verificationTime;
 double totalTime;
 
-int auxDataStructureSize;
-
 // File paths
 string dataGraphFile;
 string queryGraphFile;
 string answerFile;
-
-int uSequence[MAX_NUM_VERTEX];
-int uSequenceSize = 0;
-int orderDAG[MAX_NUM_VERTEX];
 
 // Temporary variables
 uint64_t* b;

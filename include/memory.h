@@ -44,10 +44,13 @@ int toCleanIndex = 0;
 char* isVisited;  // data count
 int* candToPos;   // data count
 
+int uSequence[MAX_NUM_VERTEX];
+int uSequenceSize = 0;
+int orderDAG[MAX_NUM_VERTEX];
+
 // Main result variables
 int nCandidate = 0;
 double nMatch, nCurrMatch, nRemainingMatch;
-const double nMaxMatch = 1;
 long long int recursiveCallCount = 0;
 long long int recursiveCallCountPerGraph;
 bool* answer;
@@ -188,6 +191,51 @@ inline void Deallocate(Graph& query) {
   delete[] query.NECElement;
   delete[] query.NECMap;
   delete[] query.isProblemLeaf;
+}
+
+inline void SetQueryGraphResource(Graph& query) {
+  globalCellID = 1;
+  cellToID.clear();
+  cellPos[0] = 0;
+  memset(visitedForQuery, 0, sizeof(char) * nQueryVertex);
+  memset(cntLabel, 0, sizeof(int) * nUniqueLabel);
+  for (int u = 0; u < nQueryVertex; ++u) {
+    candSpace[u].size = 0;
+    candSpace[u].nCellVertex = 0;
+    memset(candSpace[u].cell, -1, sizeof(int) * maxNumCandidate);
+  }
+}
+
+// for test
+inline void initialize(vector<Graph*>& dataGraph, vector<Graph*>& queryGraph) {
+  // memory.h
+  nodeIndex = 0;
+  leafCandSize = 0;
+  leafCandIndex = 0;
+  toCleanIndex = 0;
+  nCandidate = 0;
+  recursiveCallCount = 0;
+
+  // process.h
+  globalCellID = 1;
+  maxNumCandidate = 0;
+  maxDegree = 0;
+  maxNumDataVertex = 0;
+  nQueryVertex = 0;
+
+  // util.h
+  labelID = -1;
+  FAILING_SET_SIZE = ((MAX_NUM_VERTEX + 63) >> 6);
+  // Variables for filtering by neighbor safety
+  on = false;
+  index_vis_color = 0;
+  index_set_color = 0;
+  index_vis_adj = 0;
+  index_ngb_existence = 0;
+  s1 = 0;
+  s2 = 0;
+
+  // data graph and query graph
   leafCand.clear();
   delete[] leafCandInfo;
   delete[] necMapping;
@@ -220,7 +268,7 @@ inline void Deallocate(Graph& query) {
     CandidateSpace& currSet = candSpace[u];
     delete[] currSet.candidates;
     delete[] currSet.weight;
-    for (int k = 0; k < query.maxDegree; ++k) {
+    for (int k = 0; k < queryGraph[0]->maxDegree; ++k) {
       delete[] currSet.nAdjacent[k];
       delete[] currSet.adjacent[k];
       delete[] currSet.capacity[k];
@@ -235,17 +283,9 @@ inline void Deallocate(Graph& query) {
   delete[] posArray;
   delete[] candArray;
   delete[] candOffset;
-}
 
-inline void SetQueryGraphResource(Graph& query) {
-  globalCellID = 1;
-  cellToID.clear();
-  cellPos[0] = 0;
-  memset(visitedForQuery, 0, sizeof(char) * nQueryVertex);
-  memset(cntLabel, 0, sizeof(int) * nUniqueLabel);
-  for (int u = 0; u < nQueryVertex; ++u) {
-    candSpace[u].size = 0;
-    candSpace[u].nCellVertex = 0;
-    memset(candSpace[u].cell, -1, sizeof(int) * maxNumCandidate);
-  }
+  for (Graph* graphPtr : dataGraph) Deallocate(*graphPtr);
+  for (Graph* graphPtr : queryGraph) Deallocate(*graphPtr);
+  dataGraph.clear();
+  queryGraph.clear();
 }
