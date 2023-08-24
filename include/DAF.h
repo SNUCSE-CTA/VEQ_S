@@ -1710,8 +1710,7 @@ void updateAncestors(int uCurr) {
   }
 }
 
-int updateMappingQueryVer(int uCurr, int depth, int& uPPos,
-                          const CandidateSpace* currSet) {
+int updateMappingQueryVer(int uCurr, int depth) {
   isMapped[uCurr] = true;
   order[uCurr] = depth;
   updateAncestors(uCurr);
@@ -1788,7 +1787,7 @@ inline bool cannotMap(int dataGraphID) {
 
 inline void Backtrack(const Graph& query, const Graph& data, int dataGraphID) {
   long long weight;
-  int uPPos, uPos, vID, vCID, uID;
+  int uPos, vID, vCID, uID;
   bool flag;
   CandidateSpace *currSet, *childSet;
 
@@ -1884,7 +1883,7 @@ inline void Backtrack(const Graph& query, const Graph& data, int dataGraphID) {
         currE->vertex = uCurr;
         currSet = &candSpace[uCurr];
 
-        updateMappingQueryVer(uCurr, depth, uPPos, currSet);
+        updateMappingQueryVer(uCurr, depth);
         if (currE->addressSize == 0) {
           currE->address = NULL;
           isRedundant = false;

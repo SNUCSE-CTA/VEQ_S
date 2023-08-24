@@ -115,60 +115,6 @@ inline void AllocateForDataGraph() {
 #endif
 }
 
-inline void Deallocate(Graph& query) {
-  delete[] query.NECMapping;
-  delete[] query.NECElement;
-  delete[] query.NECMap;
-  delete[] query.isProblemLeaf;
-  leafCand.clear();
-  delete[] leafCandInfo;
-  delete[] necMapping;
-  delete[] uCand;
-  delete[] pairU;
-  delete[] uCandInfo;
-  for (int i = 0; i < maxNumDataVertex; ++i) vCandInfo[i].clear();
-
-  for (int i = 0; i < nQueryVertex; i++) {
-    delete[] element[i].failingSet;
-    delete[] element[i].conflictCell;
-    delete[] element[i].isPruned;
-    delete[] element[i].pruned;
-    delete[] element[i].problemChild;
-    for (int j = 0; j < MAX_QUERY_DEGREE; j++) delete[] iec[i][j];
-    if (useFailingSet) delete[] ancestors[i];
-  }
-
-  // For BuildDAG
-  for (int i = 0; i < nQueryVertex; i++) {
-    delete[] DAG_parent_query[i];
-  }
-  for (int i = 0; i < nQueryVertex; i++) {
-    delete[] DAG_ngb_query_ngb_index[i];
-    delete[] DAG_ngb_query[i];
-  }
-
-  // For ConstructAdjacencyList
-  for (int u = 0; u < nQueryVertex; ++u) {
-    CandidateSpace& currSet = candSpace[u];
-    delete[] currSet.candidates;
-    delete[] currSet.weight;
-    for (int k = 0; k < query.maxDegree; ++k) {
-      delete[] currSet.nAdjacent[k];
-      delete[] currSet.adjacent[k];
-      delete[] currSet.capacity[k];
-    }
-    delete[] currSet.capacity;
-    delete[] currSet.nAdjacent;
-    delete[] currSet.adjacent;
-
-    delete[] currSet.cell;
-    delete[] currSet.cellVertex;
-  }
-  delete[] posArray;
-  delete[] candArray;
-  delete[] candOffset;
-}
-
 inline void AllocateForQueryGraph(Graph& query) {
   nQueryVertex = query.nVertex;
   query.NECMapping = new int[nUniqueLabel * nQueryVertex];
@@ -235,6 +181,60 @@ inline void AllocateForQueryGraph(Graph& query) {
   posArray = new int[maxNumCandidate];
   candArray = new int[maxNumCandidate];
   candOffset = new int[maxNumCandidate];
+}
+
+inline void Deallocate(Graph& query) {
+  delete[] query.NECMapping;
+  delete[] query.NECElement;
+  delete[] query.NECMap;
+  delete[] query.isProblemLeaf;
+  leafCand.clear();
+  delete[] leafCandInfo;
+  delete[] necMapping;
+  delete[] uCand;
+  delete[] pairU;
+  delete[] uCandInfo;
+  for (int i = 0; i < maxNumDataVertex; ++i) vCandInfo[i].clear();
+
+  for (int i = 0; i < nQueryVertex; i++) {
+    delete[] element[i].failingSet;
+    delete[] element[i].conflictCell;
+    delete[] element[i].isPruned;
+    delete[] element[i].pruned;
+    delete[] element[i].problemChild;
+    for (int j = 0; j < MAX_QUERY_DEGREE; j++) delete[] iec[i][j];
+    if (useFailingSet) delete[] ancestors[i];
+  }
+
+  // For BuildDAG
+  for (int i = 0; i < nQueryVertex; i++) {
+    delete[] DAG_parent_query[i];
+  }
+  for (int i = 0; i < nQueryVertex; i++) {
+    delete[] DAG_ngb_query_ngb_index[i];
+    delete[] DAG_ngb_query[i];
+  }
+
+  // For ConstructAdjacencyList
+  for (int u = 0; u < nQueryVertex; ++u) {
+    CandidateSpace& currSet = candSpace[u];
+    delete[] currSet.candidates;
+    delete[] currSet.weight;
+    for (int k = 0; k < query.maxDegree; ++k) {
+      delete[] currSet.nAdjacent[k];
+      delete[] currSet.adjacent[k];
+      delete[] currSet.capacity[k];
+    }
+    delete[] currSet.capacity;
+    delete[] currSet.nAdjacent;
+    delete[] currSet.adjacent;
+
+    delete[] currSet.cell;
+    delete[] currSet.cellVertex;
+  }
+  delete[] posArray;
+  delete[] candArray;
+  delete[] candOffset;
 }
 
 inline void SetQueryGraphResource(Graph& query) {
