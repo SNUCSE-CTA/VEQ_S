@@ -27,7 +27,6 @@ unordered_map<string, int> labelMap;
 Graph* currQ;
 int nQueryVertex = 0;
 vector<Graph*> queryGraph;
-// char * isMappedDataVertex;
 int* mapTo;
 bool isMapped[MAX_NUM_VERTEX];
 int order[MAX_NUM_VERTEX];
@@ -47,10 +46,6 @@ unordered_map<pair<int, int>, int, pairHash> NECSize;
 
 // Basic variables for query DAG
 int root;
-#ifdef NEIGHBOR_LABEL_FREQUENCY
-pair<int, int>* NLFArray[MAX_NUM_VERTEX];
-int numNLF[MAX_NUM_VERTEX];
-#endif
 int* DAG_parent_query[MAX_NUM_VERTEX];  // DAG_parent_query[ui] contains parents
                                         // of ui in query DAG.
 int* DAG_child_query[MAX_NUM_VERTEX];   // DAG_child_query[ui] contains children
@@ -70,8 +65,7 @@ int* DAG_ngb_query[MAX_NUM_VERTEX];
 int* DAG_ngb_query_ngb_index[MAX_NUM_VERTEX];
 int DAG_ngb_query_size[MAX_NUM_VERTEX];
 
-// bit_vector DAG_ancestor[MAX_NUM_VERTEX];
-uint64_t* DAG_ancestor[MAX_NUM_VERTEX];  // 20190708
+uint64_t* DAG_ancestor[MAX_NUM_VERTEX];
 
 chrono::high_resolution_clock::time_point GetClock() {
   return chrono::high_resolution_clock::now();
@@ -123,12 +117,7 @@ inline void ReadCFLFormat(const string& graphFile, vector<Graph*>& graphList) {
       graph->label[i] = labelID;
       graph->core[i] = graph->degree[i] = currDegree;
       for (int j = 0; j < currDegree; ++j) {
-#ifdef EDGE_LABEL
-        inFile >> m;
-        graph->nbr.set(matrixIndex, m);
-#else
         inFile >> graph->nbr[matrixIndex];
-#endif
         ++matrixIndex;
       }
     }
@@ -145,11 +134,7 @@ inline void ReadGFUFormat(const string& graphFile, vector<Graph*>& graphList) {
   }
 
   Graph* graph = NULL;
-#ifdef EDGE_LABEL
-  vector<tuple<int, int, int>> edges;
-#else
   vector<pair<int, int>> edges;
-#endif
   string line;
   number_type pos, numVertex, numEdge;
   int fst, snd, labelID;
@@ -203,13 +188,8 @@ inline void ReadGFUFormat(const string& graphFile, vector<Graph*>& graphList) {
         break;
       }
       case LoadEdge: {
-#ifdef EDGE_LABEL
-        inFile >> fst >> snd >> labelID;
-        edges.push_back(make_tuple(fst, snd, labelID));
-#else
         inFile >> fst >> snd;
         edges.push_back(make_pair(fst, snd));
-#endif
         graph->degree[fst] += 1;
         graph->degree[snd] += 1;
         if (edges.size() >= graph->nEdge) {
@@ -224,20 +204,10 @@ inline void ReadGFUFormat(const string& graphFile, vector<Graph*>& graphList) {
           graph->nbrOffset[graph->nVertex] = pos;
           memset(graph->degree, 0, sizeof(int) * graph->nVertex);
           for (int i = 0; i < edges.size(); ++i) {
-#ifdef EDGE_LABEL
-            fst = std::get<0>(edges[i]);
-            snd = std::get<1>(edges[i]);
-            labelID = std::get<2>(edges[i]);
-            graph->nbr.set(graph->nbrOffset[fst] + graph->degree[fst], snd,
-                           labelID);
-            graph->nbr.set(graph->nbrOffset[snd] + graph->degree[snd], fst,
-                           labelID);
-#else
             fst = edges[i].first;
             snd = edges[i].second;
             graph->nbr[graph->nbrOffset[fst] + graph->degree[fst]] = snd;
             graph->nbr[graph->nbrOffset[snd] + graph->degree[snd]] = fst;
-#endif
             graph->degree[fst] += 1;
             graph->degree[snd] += 1;
           }
@@ -298,13 +268,8 @@ inline void ReadIgraphFormat(const string& graphFile,
           for (int i = 0; i < edges.size(); ++i) {
             fst = edges[i].first;
             snd = edges[i].second;
-#ifdef EDGE_LABEL
-            graph->nbr.set(graph->nbrOffset[fst] + graph->degree[fst], snd);
-            graph->nbr.set(graph->nbrOffset[snd] + graph->degree[snd], fst);
-#else
             graph->nbr[graph->nbrOffset[fst] + graph->degree[fst]] = snd;
             graph->nbr[graph->nbrOffset[snd] + graph->degree[snd]] = fst;
-#endif
             graph->degree[fst] += 1;
             graph->degree[snd] += 1;
           }
@@ -368,13 +333,8 @@ inline void ReadIgraphFormat(const string& graphFile,
     for (int i = 0; i < edges.size(); ++i) {
       fst = edges[i].first;
       snd = edges[i].second;
-#ifdef EDGE_LABEL
-      graph->nbr.set(graph->nbrOffset[fst] + graph->degree[fst], snd);
-      graph->nbr.set(graph->nbrOffset[snd] + graph->degree[snd], fst);
-#else
       graph->nbr[graph->nbrOffset[fst] + graph->degree[fst]] = snd;
       graph->nbr[graph->nbrOffset[snd] + graph->degree[snd]] = fst;
-#endif
       graph->degree[fst] += 1;
       graph->degree[snd] += 1;
     }
@@ -382,12 +342,6 @@ inline void ReadIgraphFormat(const string& graphFile,
   inFile.close();
   edges.clear();
   vertices.clear();
-  /*
-  for(int j = 0; j < graphList.size(); ++j){
-    Graph& g = *graphList[j];
-    g.print(j);
-  }
-  */
 }
 
 inline void ProcessDataGraphs() {
@@ -395,11 +349,7 @@ inline void ProcessDataGraphs() {
   unordered_map<int, int>::const_iterator lit;
   nGraph = dataGraph.size();
   nUniqueLabel = labelMap.size();
-#ifdef NEIGHBOR_LABEL_FREQUENCY
-#else
-  // NLFSize = BITS_PER_LABEL * (nUniqueLabel + 1) / INT_SIZE + 1;
   NLFSize = (BITS_PER_LABEL * nUniqueLabel - 1) / UINT64_SIZE + 1;
-#endif
   for (int i = 0; i < dataGraph.size(); ++i) {
     Graph& g = *dataGraph[i];
     if (g.maxDegree > maxDegree) maxDegree = g.maxDegree;
@@ -410,9 +360,7 @@ inline void ProcessDataGraphs() {
   int* bin = new int[maxDegree + 1];
   int* pos = new int[maxNumDataVertex];
   int* vert = new int[maxNumDataVertex];
-  // cout<<"N(unique label): "<<nUniqueLabel<<endl;
-  // cout<<"NLF size (bytes): "<<NLFSize<<endl;
-  //  For each data graph g
+  // For each data graph g
   for (int i = 0; i < dataGraph.size(); ++i) {
     start = 0;
     maxValue = 0;
