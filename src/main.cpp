@@ -114,8 +114,8 @@ void compare(string dataGraphFile, const int queryCnt, string queryGraphFiles[],
 TEST(graph_test, graph_test_readGraph_1) {
   string queryGraphFiles[1] = {"graph/query/IMDB-MULTI/bfs/8/q0.gfu"};
   ReadGFUFormat("graph/data/IMDB-MULTI.gfu", dataGraph);
+  cout << "Read data graph" << endl;
   ASSERT_EQ(false, dataGraph.back()->fail);
-  initialize(dataGraph, queryGraph);
 }
 
 // Subgraph query
