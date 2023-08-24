@@ -1715,11 +1715,8 @@ int updateMappingQueryVer(int uCurr, int depth) {
   order[uCurr] = depth;
   updateAncestors(uCurr);
   if (useFailingSet) {
-    cout << FAILING_SET_SIZE << endl;
     for (int x = 0; x < FAILING_SET_SIZE; ++x) {
       currE->failingSet[x] = 0;
-      cout << currE->failingSet[x] << endl;
-      cout << typeid(currE->failingSet[x]).name() << endl;
     }
   }
   currE->address = iec[uCurr][nMappedParent[uCurr] - 1];
