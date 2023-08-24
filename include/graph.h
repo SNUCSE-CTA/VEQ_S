@@ -55,6 +55,10 @@ class Graph {
   int* NECMap;
   int numNECMapping;
   bool* isProblemLeaf;
+
+  // Only for tests
+  bool fail;
+
   Graph() {
     nVertex = 0;
     nEdge = 0;

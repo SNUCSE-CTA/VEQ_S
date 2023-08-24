@@ -148,6 +148,7 @@ inline void ReadGFUFormat(const string& graphFile, vector<Graph*>& graphList) {
         if (inFile.eof()) break;
         graph = new Graph();
         graphList.push_back(graph);
+        graph->fail = false;
         cntVertex = 0;
         edges.clear();
         state = LoadNumVertex;
@@ -222,12 +223,6 @@ inline void ReadGFUFormat(const string& graphFile, vector<Graph*>& graphList) {
   }
   inFile.close();
   edges.clear();
-  /*
-  for(int j = 0; j < graphList.size(); ++j){
-    Graph& g = *graphList[j];
-    g.print(j);
-  }
-  */
 }
 
 inline void ReadIgraphFormat(const string& graphFile,

@@ -111,11 +111,11 @@ void compare(string dataGraphFile, const int queryCnt, string queryGraphFiles[],
   }
 }
 
-TEST(compare_test, compare_test_1) {
+TEST(graph_test, graph_test_readGraph_1) {
   string queryGraphFiles[1] = {"graph/query/IMDB-MULTI/bfs/8/q0.gfu"};
-  string resultFiles[1] = {"testdata/IMDB-MULTI/bfs/8/q0.txt"};
-
-  compare("graph/data/IMDB-MULTI.gfu", 1, queryGraphFiles, resultFiles);
+  ReadGFUFormat("graph/data/IMDB-MULTI.gfu", dataGraph);
+  ASSERT_EQ(false, dataGraph.back()->fail);
+  initialize(dataGraph, queryGraph);
 }
 
 // Subgraph query

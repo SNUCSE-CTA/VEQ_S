@@ -19,7 +19,7 @@ string dataGraphFile;
 string queryGraphFile;
 string answerFile;
 
-// Temporary variables
+// Temporary variable
 uint64_t* b;
 
 struct dynamicDAG_ancestors {
