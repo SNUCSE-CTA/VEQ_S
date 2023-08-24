@@ -6,7 +6,6 @@ using namespace std;
 // Variables for search
 int uCurr;
 int labelID = -1;
-int NECSetSize = -1;
 pair<int, pair<int, double>> NECRank[MAX_NUM_VERTEX];
 int NECRegionSize[MAX_NUM_VERTEX];
 int NECCountSet[MAX_NUM_VERTEX];
@@ -18,7 +17,6 @@ int candPos[MAX_NUM_VERTEX];
 int currMapping[MAX_NUM_VERTEX];
 int nMappedParent[MAX_NUM_VERTEX];
 weight_type WEIGHT_MAX = LLONG_MAX;
-long long optWeight = LLONG_MAX;
 int* iec[MAX_NUM_VERTEX][MAX_QUERY_DEGREE];
 int iecSize[MAX_NUM_VERTEX][MAX_QUERY_DEGREE];
 
