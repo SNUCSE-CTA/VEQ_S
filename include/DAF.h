@@ -1884,6 +1884,7 @@ inline void Backtrack(const Graph& query, const Graph& data, int dataGraphID) {
         currSet = &candSpace[uCurr];
 
         updateMappingQueryVer(uCurr, depth);
+        cout << "updateMappingQueryVer" << endl;
         if (currE->addressSize == 0) {
           currE->address = NULL;
           isRedundant = false;
