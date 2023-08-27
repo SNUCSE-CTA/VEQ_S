@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+
 #include "run.h"
 
 void compare(string dataGraphFile, const int queryCnt, string queryGraphFiles[],
@@ -38,8 +39,9 @@ void compare(string dataGraphFile, const int queryCnt, string queryGraphFiles[],
   }
 }
 
-TEST(graph_test, graph_test_readGraph_1) {
+TEST(compare_test, compare_test_1) {
   string queryGraphFiles[1] = {"graph/query/IMDB-MULTI/bfs/8/q0.gfu"};
-  ReadGFUFormat("graph/data/IMDB-MULTI.gfu", dataGraph);
-  ASSERT_EQ(false, dataGraph.back()->fail);
+  string resultFiles[1] = {"testdata/IMDB-MULTI/bfs/8/q0.txt"};
+
+  compare("graph/data/IMDB-MULTI.gfu", 1, queryGraphFiles, resultFiles);
 }
