@@ -36,12 +36,25 @@ void compare(string dataGraphFile, const int queryCnt, string queryGraphFiles[],
       EXPECT_EQ(answer[g], inExpectedResult);
       if (inExpectedResult) expectedResultIter++;
     }
+
+    initialize(dataGraph, queryGraph);
   }
 }
 
 TEST(compare_test, compare_test_1) {
-  string queryGraphFiles[1] = {"graph/query/IMDB-MULTI/bfs/8/q0.gfu"};
-  string resultFiles[1] = {"testdata/IMDB-MULTI/bfs/8/q0.txt"};
+  string queryGraphFiles[2] = {"graph/query/IMDB-MULTI/bfs/8/q0.gfu",
+                               "graph/query/IMDB-MULTI/bfs/16/q0.gfu"};
+  string resultFiles[2] = {"testdata/IMDB-MULTI/bfs/8/q0.txt",
+                           "testdata/IMDB-MULTI/bfs/16/q0.txt"};
 
   compare("graph/data/IMDB-MULTI.gfu", 1, queryGraphFiles, resultFiles);
+  // initialize(dataGraph, queryGraph);
 }
+
+// TEST(compare_test, compare_test_2) {
+//   string queryGraphFiles[1] = {"graph/query/IMDB-MULTI/bfs/16/q0.gfu"};
+//   string resultFiles[1] = {"testdata/IMDB-MULTI/bfs/16/q0.txt"};
+
+//   compare("graph/data/IMDB-MULTI.gfu", 1, queryGraphFiles, resultFiles);
+//   initialize(dataGraph, queryGraph);
+// }
