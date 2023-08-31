@@ -112,10 +112,8 @@ inline void AllocateForDataGraph() {
 
   answer = new bool[nGraph];
   memset(answer, false, sizeof(bool) * nGraph);
-#ifdef PRUNING_BY_EQUIVALENCE_SETS
   cellPos = new int[maxNumCandidate];
   cellList = new int[maxNumDataVertex];
-#endif
 }
 
 inline void AllocateForQueryGraph(Graph& query) {

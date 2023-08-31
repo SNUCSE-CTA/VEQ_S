@@ -1,7 +1,6 @@
 CXX := g++
 CXXFLAGS := -std=c++14 -O3 -w -DNDEBUG
 CPPFLAGS := -Iinclude
-EXTRA_FLAGS := -DDYNAMIC_ORDERING -DFILTERING_BY_NEIGHBOR_SAFETY -DLEAF_ADAPTIVE_MATCHING -DN_OPTIMIZATION -DPRUNING_BY_EQUIVALENCE_SETS
 TEST_LIBS := -lgtest -lpthread
 
 SRC := src
@@ -11,7 +10,15 @@ TEST_SRC := tests
 SRCS=$(wildcard $(SRC)/*.cpp)
 OBJS=$(SRCS:$(SRC)/%.cpp=$(SRC)/%.o)
 
-TEST_SRCS=$(wildcard $(TEST_SRC)/*.cpp)
+DEFAULT_TEST_SRCS=$(addprefix $(TEST_SRC)/, test_main.cpp test_compare.cpp)
+CI_TEST_SRCS=$(addprefix $(TEST_SRC)/, test_main.cpp test_readGraph.cpp)
+ALL_TEST_OBJS=$(wildcard $(TEST_SRC)/*.o)
+
+ifeq ($(TARGET), CI)
+TEST_SRCS=$(CI_TEST_SRCS)
+else
+TEST_SRCS=$(DEFAULT_TEST_SRCS)
+endif
 TEST_OBJS=$(TEST_SRCS:$(TEST_SRC)/%.cpp=$(TEST_SRC)/%.o)
 
 VEQ_S := VEQ_S
@@ -22,7 +29,7 @@ TESTP := test_run
 all: $(VEQ_S)
 
 $(VEQ_S): $(SRC)/main.cpp
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(EXTRA_FLAGS) -c $(SRC)/main.cpp -o $(SRC)/main.o
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c $(SRC)/main.cpp -o $(SRC)/main.o
 	$(CXX) $(CXXFLAGS) $(SRC)/main.o -o $@
 
 $(SRC)/%.o: $(SRC)/%.cpp
@@ -37,7 +44,7 @@ $(TEST_SRC)/%.o: $(TEST_SRC)/%.cpp
 clean:
 	$(RM) -rv $(VEQ_S)
 	$(RM) -rv $(OBJS)
-	$(RM) -rv $(TEST_OBJS) $(TESTP)
+	$(RM) -rv $(ALL_TEST_OBJS) $(TESTP)
 
 run: $(VEQ_S)
 	./$(VEQ_S) -dg graph/data/COLLAB.gfu -qg graph/query/COLLAB/randomwalk/8/q30.gfu

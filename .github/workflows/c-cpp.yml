@@ -16,4 +16,4 @@ jobs:
     - name: install gtest
       run: sudo apt-get install -y libgtest-dev
     - name: make test
-      run: make test
+      run: make test TARGET=CI
