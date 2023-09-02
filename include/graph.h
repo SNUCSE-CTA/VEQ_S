@@ -1,5 +1,4 @@
 #include <algorithm>
-#include <vector>
 
 #include "config.h"
 using namespace std;
@@ -26,18 +25,6 @@ struct Element {
   }
 };
 
-#ifdef EDGE_LABEL
-class PairArray {
- public:
-  pair<int, int>* arr;
-  PairArray() {}
-  PairArray(int size) { arr = new pair<int, int>[size]; }
-  inline int operator[](const int idx) const { return arr[idx].first; }
-  inline pair<int, int>& get(const int idx) { return arr[idx]; }
-  inline void set(int idx, int fst, int snd) { arr[idx] = make_pair(fst, snd); }
-  inline void set(int idx, int fst) { arr[idx].first = fst; }
-};
-#endif
 class Graph {
  public:
   number_type nVertex;
@@ -45,32 +32,16 @@ class Graph {
   int nLabel;
   int maxDegree;
   int* label;
-#ifdef EDGE_LABEL
-  PairArray nbr;
-#else
   int* nbr;
-#endif
   number_type* nbrOffset;
   int* degree;
-  // int* vSortedByLabelDegree;
-  // int* degreeArray;
-  // pair<int, int>* posLabel;
   int* vertex;
   int* vertexOffset;
   int* maxNbrDegree;
-#ifdef NEIGHBOR_LABEL_FREQUENCY
-  unordered_map<int, int>* NLF;
-#else
-  // int* NLF;
   uint64_t* NLF;
-#endif
   unordered_map<int, int> labelFrequency;
-#ifdef HUGE_GRAPH
-#else
   unordered_map<pair<int, int>, pair<number_type, number_type>, pairHash>
       labelToNbrOffset;
-#endif
-  // int* labelToNbrOffset;
 
   // Only for a data graph
   int mostFrequentLabelID;
@@ -84,6 +55,10 @@ class Graph {
   int* NECMap;
   int numNECMapping;
   bool* isProblemLeaf;
+
+  // Only for tests
+  bool fail;
+
   Graph() {
     nVertex = 0;
     nEdge = 0;
@@ -91,24 +66,15 @@ class Graph {
     maxDegree = 0;
 
     label = NULL;
-#ifdef EDGE_LABEL
-#else
     nbr = NULL;
-#endif
     nbrOffset = NULL;
     core = NULL;
     degree = NULL;
-    // vSortedByLabelDegree = NULL;
-    // degreeArray = NULL;
-    // posLabel = NULL;
     vertex = NULL;        // vertices sorted by labels
     vertexOffset = NULL;  // vertexOffset[l]: the offset of the starting
                           // position of vertices with label l
     maxNbrDegree = NULL;
-#ifdef NEIGHBOR_LABEL_FREQUENCY
-#else
     NLF = NULL;
-#endif
     NECMap = NULL;
     numNECMapping = 0;
     NECMapping = NULL;
@@ -130,11 +96,7 @@ class Graph {
 
   inline void initEdge(const number_type n) {
     nEdge = n;
-#ifdef EDGE_LABEL
-    nbr = PairArray(nEdge * 2);
-#else
     nbr = new int[nEdge * 2];
-#endif
   }
 
   inline void sortNeighbors() {
@@ -150,25 +112,13 @@ class Graph {
     for (int i = 0; i < nVertex; ++i) {
       ++vertexOffset[label[i]];
       if (degree[i] == 0) continue;
-      sort(
-#ifdef EDGE_LABEL
-          nbr.arr + nbrOffset[i], nbr.arr + nbrOffset[i + 1],
-          [this](const pair<int, int>& p1, const pair<int, int>& p2) -> bool {
-            if (label[p1.first] == label[p2.first])
-              return (degree[p1.first] < degree[p2.first]);
-            else
-              return (label[p1.first] < label[p2.first]);
-          }
-#else
-          nbr + nbrOffset[i], nbr + nbrOffset[i + 1],
-          [this](const int& v1, const int& v2) -> bool {
-            if (label[v1] == label[v2])
-              return (degree[v1] < degree[v2]);
-            else
-              return (label[v1] < label[v2]);
-          }
-#endif
-      );
+      sort(nbr + nbrOffset[i], nbr + nbrOffset[i + 1],
+           [this](const int& v1, const int& v2) -> bool {
+             if (label[v1] == label[v2])
+               return (degree[v1] < degree[v2]);
+             else
+               return (label[v1] < label[v2]);
+           });
       currCnt = 1;
       currIndex = nbrOffset[i];
       prev = label[nbr[currIndex]];
@@ -220,12 +170,7 @@ class Graph {
 
   inline void computeNLF() {
     int lid, nPositive = 0;
-#ifdef NEIGHBOR_LABEL_FREQUENCY
-    unordered_map<int, int>::iterator iter;
-    NLF = new unordered_map<int, int>[nVertex];
-#else
     NLF = new uint64_t[(long long)nVertex * (long long)NLFSize]();
-#endif
     for (int j = 0; j < nVertex; ++j) {
       if (degree[j] == 0) continue;
       for (number_type k = nbrOffset[j]; k < nbrOffset[j + 1]; ++k) {
@@ -233,14 +178,6 @@ class Graph {
         if (degree[neighbor] > maxNbrDegree[j])
           maxNbrDegree[j] = degree[neighbor];
         lid = label[neighbor];
-#ifdef NEIGHBOR_LABEL_FREQUENCY
-        iter = NLF[j].find(lid);
-        if (iter == NLF[j].end()) {
-          NLF[j][lid] = 1;
-        } else {
-          iter->second += 1;
-        }
-#else
         if (cntLabel[lid] == 0) positiveLabel[nPositive++] = lid;
         if (cntLabel[lid] < BITS_PER_LABEL) {
           int start = lid * BITS_PER_LABEL;
@@ -256,44 +193,28 @@ class Graph {
 #endif
           ++cntLabel[lid];
         }
-#endif
       }
-#ifdef NEIGHBOR_LABEL_FREQUENCY
-#else
       while (nPositive > 0) cntLabel[positiveLabel[--nPositive]] = 0;
-#endif
     }
   }
-#ifdef PRINT_LOG
-  void print(int id = 0) {
-    unordered_map<pair<int, int>, pair<int, int>, pairHash>::const_iterator
-        iter;
-    cout << "[Graph " << id << "]" << endl;
-    cout << "|V|: " << nVertex << ". |E|: " << nEdge << ". |L|: " << nLabel
-         << ". maxD: " << maxDegree << endl;
-    for (int i = 0; i < nVertex; ++i) {
-      cout << "(u" << i << ") lv: " << label[i] << ". degree: " << degree[i]
-           << ". nbr:";
-      for (number_type j = nbrOffset[i]; j < nbrOffset[i + 1]; ++j) {
-#ifdef EDGE_LABEL
-        pair<int, int> p = nbr.get(j);
-        cout << " u" << p.first << "(le: " << p.second << ")";
-#else
-        cout << " u" << nbr[j];
-#endif
-      }
-      cout << endl;
-      for (int j = 0; j < nUniqueLabel; ++j) {
-        iter = labelToNbrOffset.find(make_pair(i, j));
-        if (iter == labelToNbrOffset.end()) continue;
-        cout << "\tN(u: u" << i << ", lv: " << j << "):";
-        for (int k = iter->second.first;
-             k < iter->second.first + iter->second.second; ++k) {
-          cout << " u" << nbr[k];
-        }
-        cout << endl;
-      }
-    }
-  }
-#endif
+};
+
+// Variables for buildling CS
+struct CandidateSpace {
+  int size;         // the size for both path and candidates
+  int* candidates;  // candidate set
+  int*** adjacent =
+      NULL;  // adjacent[i][j] = candidates of this unit when the i-th parent,
+             // regarding DAG, mapped to the j-th candidate of the parent.
+  int** nAdjacent =
+      NULL;  // nAdjacent[i][j] = size of back_trak_index[i][j]. That is, the
+             // number of candidates of this unit when the i-th parent mapped to
+             // the j-th candidate of the parent.
+
+  int** capacity = NULL;
+  int** capacityNgb = NULL;
+  long long* weight = NULL;
+  int* cell;
+  int* cellVertex;
+  int nCellVertex;
 };

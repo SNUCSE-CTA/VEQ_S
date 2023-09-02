@@ -1,5 +1,9 @@
 #include "util.h"
 
+enum direction { topDown, bottomUp };
+
+enum ngbType { parentNgb, childNgb, allNgb };
+
 class Array {
  public:
   int* b;
@@ -108,24 +112,4 @@ struct Queue {
   int set_optWeight(int optWeight) { this->optWeight = optWeight; }
 
   int set_minPosition(int minPosition) { this->minPosition = minPosition; }
-};
-
-// Variables for buildling CS
-struct CandidateSpace {
-  int size;         // the size for both path and candidates
-  int* candidates;  // candidate set
-  int*** adjacent =
-      NULL;  // adjacent[i][j] = candidates of this unit when the i-th parent,
-             // regarding DAG, mapped to the j-th candidate of the parent.
-  int** nAdjacent =
-      NULL;  // nAdjacent[i][j] = size of back_trak_index[i][j]. That is, the
-             // number of candidates of this unit when the i-th parent mapped to
-             // the j-th candidate of the parent.
-
-  int** capacity = NULL;
-  int** capacityNgb = NULL;
-  long long* weight = NULL;
-  int* cell;
-  int* cellVertex;
-  int nCellVertex;
 };

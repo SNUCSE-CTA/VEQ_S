@@ -3,34 +3,9 @@
 #include "process.h"
 using namespace std;
 
-// Variables for maximal matching
-int nodeIndex = 0;
-int dist[MAX_NUM_VERTEX + 1];
-int* uCand;
-int* necMapping;
-int* pairU;
-int* pairV;
-number_type leafCandSize = 0;
-int leafCandIndex = 0;
-vector<int> leafCand;
-pair<int, int>* leafCandInfo;
-int** sumNECCand;  // added for the optimization of performing all MM first
-int* nSumNECCand;  // added for the optimization of performing all MM first
-int* vCandIndex;   // length: maxNumDataVertex. its each entry stores the number
-                   // of query nodes contain the corresponding candidate.
-int posSumNECCand;
-vector<pair<int, int>>* vCandInfo;  // a combination of v_cands and v_cands_pos
-pair<int, int>* uCandInfo;          // two-d array:
-// [i,j] means the j-th candidate pair of the i-th nec node(in the nec-node
-// categorized by label) each candidate pair stores a candidate and the position
-// of "the i-th nec node" in this candidate's u_cand set.
-int* flagSumNECCand;  // indicate whether or not a candidate has been added into
-                      // the candidate already.
-
 // Variables for search
 int uCurr;
 int labelID = -1;
-int NECSetSize = -1;
 pair<int, pair<int, double>> NECRank[MAX_NUM_VERTEX];
 int NECRegionSize[MAX_NUM_VERTEX];
 int NECCountSet[MAX_NUM_VERTEX];
@@ -42,7 +17,6 @@ int candPos[MAX_NUM_VERTEX];
 int currMapping[MAX_NUM_VERTEX];
 int nMappedParent[MAX_NUM_VERTEX];
 weight_type WEIGHT_MAX = LLONG_MAX;
-long long optWeight = LLONG_MAX;
 int* iec[MAX_NUM_VERTEX][MAX_QUERY_DEGREE];
 int iecSize[MAX_NUM_VERTEX][MAX_QUERY_DEGREE];
 
@@ -142,6 +116,43 @@ inline bool sortQueryByLabelFrequency(const int id1, const int id2) {
 inline bool sortPairsByWeight(const pair<long long, long long>& p1,
                               const pair<long long, long long>& p2) {
   return p1.second < p2.second;
+}
+inline int partitionByNeighbor(int arr[], int uPos, int nbr, int nbrPos,
+                               int low, int high) {
+  int i = low - 1;
+  for (int j = low; j < high; ++j) {
+    bool exist = false;
+    while (posArray[arr[j]] < candSpace[nbr].nAdjacent[uPos][arr[j]] &&
+           candSpace[nbr].adjacent[uPos][arr[j]][posArray[arr[j]]] == nbrPos) {
+      exist = true;
+      ++posArray[arr[j]];
+    }
+    if (exist) swap(arr[++i], arr[j]);
+  }
+  return (i + 1);
+}
+inline void sortByNeighbor(int arr[], int index, int uPos, int nbr, int nbrPos,
+                           int low, int high) {
+  if (nbrPos >= candSpace[nbr].size) {
+    ++index;
+    if (index >= DAG_ngb_query_size[uI]) return;
+    nbr = DAG_ngb_query[uI][index];
+    while (currQ->NECMap[nbr] != -1 && currQ->NECMap[nbr] != nbr) {
+      ++index;
+      if (index >= DAG_ngb_query_size[uI]) return;
+      nbr = DAG_ngb_query[uI][index];
+    }
+    uPos = DAG_ngb_query_ngb_index[uI][index];
+
+    nbrPos = 0;
+    for (int x = low; x < high; ++x) posArray[arr[x]] = 0;
+  }
+  int pivot = partitionByNeighbor(arr, uPos, nbr, nbrPos, low, high);
+  if (pivot > low && pivot < high) candOffset[nCandOffset++] = pivot;
+  if (pivot - low > 1)
+    sortByNeighbor(arr, index, uPos, nbr, nbrPos + 1, low, pivot);
+  if (high - pivot > 1)
+    sortByNeighbor(arr, index, uPos, nbr, nbrPos + 1, pivot, high);
 }
 
 inline double factorization(int x) {
