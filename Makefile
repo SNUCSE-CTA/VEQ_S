@@ -1,5 +1,5 @@
 CXX := g++
-CXXFLAGS := -std=c++14 -O3 -w -DNDEBUG
+CXXFLAGS := -std=c++14 -march=native -flto -O3 -w -DNDEBUG
 CPPFLAGS := -Iinclude
 TEST_LIBS := -lgtest -lpthread
 
