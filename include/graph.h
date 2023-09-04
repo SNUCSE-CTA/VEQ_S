@@ -210,6 +210,7 @@ struct CandidateSpace {
       NULL;  // nAdjacent[i][j] = size of back_trak_index[i][j]. That is, the
              // number of candidates of this unit when the i-th parent mapped to
              // the j-th candidate of the parent.
+  int* lAdjacent = NULL;
 
   int** capacity = NULL;
   int** capacityNgb = NULL;

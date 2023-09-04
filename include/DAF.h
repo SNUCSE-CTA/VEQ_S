@@ -435,19 +435,6 @@ inline bool filteringWithDAG(const Graph& query, const Graph& data,
 
       // 1.3.2 : filtering by cardinality
       if (iSVaildCand && useNbrSafety) {
-#ifdef HUGE_GRAPH
-        int t = 0;
-        for (long long z = data.nbrOffset[cand_cur];
-             z < data.nbrOffset[cand_cur + 1]; ++z) {
-          int ngb = data.nbr[z];
-          if (vis_adj[ngb] == index_vis_adj) {
-            ++t;
-          }
-        }
-        if (t < d) {
-          iSVaildCand = false;
-        }
-#else
         for (int y = 0; y < index_set_color; y++) {
           int t = 0;
           iter = data.labelToNbrOffset.find(make_pair(cand_cur, set_color[y]));
@@ -468,7 +455,6 @@ inline bool filteringWithDAG(const Graph& query, const Graph& data,
             break;
           }
         }
-#endif
       }
       // 1.3.3 : remain or remove
       if (!iSVaildCand) {
@@ -481,6 +467,10 @@ inline bool filteringWithDAG(const Graph& query, const Graph& data,
     }
     if (new_size == 0) return false;
     node_unit_cur.size = new_size;
+    if (!useNbrSafety) {
+      memset(node_unit_cur.lAdjacent, 0,
+             sizeof(int) * node_unit_cur.size * labelMap.size());
+    }
   }
   return true;
 }
