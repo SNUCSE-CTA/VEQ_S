@@ -1,8 +1,8 @@
 # VEQs
 ## 1. Background and Objectives
-With the global attention on big data, related research and technologies are rapidly growing. Among the methods for storing big data, graphs are one of the prominent ones. In particular, the subgraph query processing problem involves finding all data graphs that contain subgraphs isomorphic to a given query graph among multiple data graphs and one query graph. This problem has practical applications in various fields such as social network analysis and chemical compound search.
-
-Our research team has developed an algorithm that is over 400 times faster than the previous state-of-the-art algorithms for the subgraph query processing problem. We presented this algorithm at SIGMOD, which is one of the top computer science conferences. As a result of this research, we have received inquiries and requests for code sharing from researchers at prestigious universities overseas. Additionally, a startup in the field of drug development, Inc. AIgenDrug, has also requested code sharing. Therefore, the goal of this project is to refine the source code of VEQs, which is the world's top-performing algorithm for the subgraph query processing problem, and make it publicly available as a library for more convenient use.
+Our research team has developed an algorithm that is over 400 times faster than the previous state-of-the-art algorithms for the subgraph query processing problem. We presented this algorithm at SIGMOD, which is one of the top computer science conferences. As a result of this research, we have received inquiries and requests for code sharing from researchers at prestigious universities overseas. Additionally, a startup in the field of drug development, Inc. AIgenDrug, has also requested code sharing.  
+  
+Therefore, the goal of this project is to refine the source code of VEQs, which is the world's top-performing algorithm for the subgraph query processing problem, and make it publicly available as a library for more convenient use.
 
 ## 2. Development Environment and Programming Language
 Programming Language:
@@ -48,10 +48,31 @@ The project repository supports extensive experiments on well-known real dataset
 
 Additionally, continuous integration (CI) is used to execute scripts that check if the program correctly reads graphs, providing automated testing for this script, enhancing stability and reliability.
 
-## 5. Expected Impact and Application Areas
+## 5. How to run
+Compile and make an executable binary
+```bash
+make
+```
+Run VEQs
+```bash
+./VEQ_S -dg [data graph file] -qg [query graph file] -o [output file]
+```
+Run VEQs using example data and query
+```bash
+make run
+```
+Run tests
+```bash
+make test
+```
+Remove all binaries and object files
+```bash
+make clean
+```
+## 6. Expected Impact and Application Areas
 Currently, big data is being generated at a rapid pace, and services utilizing this data are advancing significantly. The generation and analysis of graph big data are also becoming active, leading to an increasing demand for efficient algorithms for large-scale graph problems. The technology developed in this project can be used for tasks such as searching for specific patterns in big data graphs and aiding in drug development. This graph analysis technology is expected to facilitate toxicological analysis, a crucial step in drug development. In fact, the startup Inc. AIgenDrug has successfully utilized the technology from this project to quickly address toxicity analysis of compound data.
 
-## 6. References
+## 7. References
 [1] H. Kim, Y. Choi, K. Park, X. Lin, S.-H. Hong, and W.-S. Han. 2021. Versatile equivalences: Speeding up subgraph query processing and subgraph matching. In Proceedings of ACM SIGMOD.
 
 [2] H. Kim, Y. Choi, K. Park, X. Lin, S.-H. Hong, and W.-S. Han. 2023. Fast subgraph query processing and subgraph matching via static and dynamic equivalences. The VLDB Journal, 32.
