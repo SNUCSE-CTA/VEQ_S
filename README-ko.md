@@ -2,7 +2,7 @@
 ## 1. 개발배경 및 목적
 전 세계적으로 빅 데이터(Big data)가 주목을 받으면서 관련 연구와 기술이 급증하고 있다. 빅 데이터를 저장하는 방법들 가운데 대표적인 것이 그래프이다. 특히 부분 그래프 질의 문제(subgraph query processing)는 다수의 데이터 그래프와 하나의 쿼리 그래프가 주어졌을 때 쿼리 그래프와 동형 (isomorphic)인 부분 그래프를 포함하는 모든 데이터 그래프를 찾아내는 문제로, 소셜 네트워크(social network) 분석, 화합물 검색(chemical compound search) 등 실제 세계의 다양한 분야에서 응용될 수 있다.
 
-본 프로젝트는 부분 그래프 질의 문제에 대한 최신 알고리즘인 VEQs의 소스코드를 다듬어 공개하고, 이를 라이브러리화하여 보다 편리하게 사용할 수 있도록 만드는 것을 목표로 한다.
+본 연구팀은 부분그래프 질의 처리 문제에 대해서 이전 최고 성능 알고리즘에 비해 400배 이상 빠른 알고리즘을 개발하여, 컴퓨터 분야 최우수학술대회인 SIGMOD에서 발표하였다. 이러한 연구 결과에 대해 해외 유수 대학의 연구진들로부터 알고리즘에 대한 문의와 코드 공유 요청을 받았고, 또한 신약 개발 관련 스타트업 (주)AIgenDrug으로부터도 코드 공유 요청을 받았다. 이에 본 프로젝트는 부분 그래프 질의 문제에 대한 세계 최고 성능의 알고리즘인 VEQs의 소스코드를 다듬어 공개하고, 이를 라이브러리화하여 보다 편리하게 사용할 수 있도록 만드는 것을 목표로 한다.
 
 ## 2. 개발환경 및 개발언어
 개발 언어
@@ -50,9 +50,7 @@ VEQs [1, 2]는 filtering-verification 방법을 따르는 알고리즘으로, (1
 또 CI(continuous integration)를 사용하여 로컬 테스트와는 별개로 그래프를 잘 읽어오는지 확인하는 스크립트를 실행시킨다. 이는 해당 스크립트에 대한 자동화된 테스트를 제공하며, 안정성 및 신뢰성을 향상시키는 데 도움을 준다.
 
 ## 5. 기대효과 및 활용분야
-본 프로젝트에서 부분그래프 질의 처리 문제에 대한 쿼리 수행시간 개선율은 41741%에 달한다. 이러한 연구 결과에 대해 University of Edinburgh, New York University, Arizona State University, Hong Kong University of Science and Technology, Chinese University of Hong Kong, Peking University, Fudan University, Osaka University, University of Verona, University of Salerno, Eindhoven University of Technology, University of Sydney 등 30여 개 해외 유수 대학의 연구진들로부터 알고리즘에 대한 문의와 코드 공유 요청을 받았다. 또한 일본의 통신기업 NTT와 신약 개발 관련 스타트업 (주)AIgenDrug으로부터도 코드 공유 요청을 받았다.
-
-현재 빠른 속도로 빅 데이터가 생성되고 있고 이를 활용한 서비스가 크게 발전하고 있다. 그래프 빅 데이터의 생성과 분석도 활성화되어 대규모 그래프 문제에 대한 효율적인 알고리즘에 대한 수요가 증가하고 있다. 본 프로젝트의 기술은 빅 데이터 그래프에서 특정한 패턴 검색, 사이버 공격 탐지, 신약 개발 등에 사용될 수 있다. 이 그래프 분석 기술을 사용하면 신약개발의 중요 과정인 독성 분석이 용이해지고 이로 인해 신약개발에도 도움이 될 것으로 기대된다.
+현재 빠른 속도로 빅 데이터가 생성되고 있고 이를 활용한 서비스가 크게 발전하고 있다. 그래프 빅데이터의 생성과 분석도 활성화되어 대규모 그래프 문제에 대한 효율적인 알고리즘에 대한 수요가 증가하고 있다. 본 프로젝트의 기술은 빅 데이터 그래프에서 특정한 패턴 검색, 신약 개발 등에 사용될 수 있다. 이 그래프 분석 기술을 사용하면 신약개발의 중요 과정인 독성 분석이 용이해지고 이로 인해 신약개발에도 도움이 될 것으로 기대된다. 실제로, 신약 개발 관련 스타트업 (주)AIgenDrug이 본 프로젝트의 기술을 사용하여 화합물 데이터의 독성 분석을 빠른 시간에 해결할 수 있었다.
 
 ## 6. 참고문헌
 [1] H. Kim, Y. Choi, K. Park, X. Lin, S.-H. Hong, and W.-S. Han. 2021. Versatile equivalences: Speeding up subgraph query processing and subgraph matching. In Proceedings of ACM SIGMOD.
