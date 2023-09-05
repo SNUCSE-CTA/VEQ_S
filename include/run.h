@@ -1,5 +1,5 @@
 // Adaptive matching order with new extendable candidate definition
-#include "DAF.h"
+#include "VEQ.h"
 
 void writeAnswer(string& answerFile) {
   ofstream outFile(answerFile);
