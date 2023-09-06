@@ -467,12 +467,99 @@ inline bool filteringWithDAG(const Graph& query, const Graph& data,
     }
     if (new_size == 0) return false;
     node_unit_cur.size = new_size;
-    if (!useNbrSafety) {
-      memset(node_unit_cur.lAdjacent, 0,
-             sizeof(int) * node_unit_cur.size * labelMap.size());
-    }
   }
+
   return true;
+}
+
+inline void buildNbrSafetyStructure(const Graph& query, const Graph& data) {
+  // Build structure for efficient neighbor safety
+  for (int i = 0; i < uSequenceSize; i++) {
+    const int query_node_cur = uSequence[i];
+    CandidateSpace& node_unit_cur = candSpace[query_node_cur];
+    node_unit_cur.adjLabelCount = new int[node_unit_cur.size * labelMap.size()];
+    int node_unit_cur_degree = 0;
+    for (int x = 0; x < node_unit_cur.size; x++) {
+      node_unit_cur_degree += data.degree[node_unit_cur.candidates[x]];
+    }
+    node_unit_cur.lAdjacent = new int[node_unit_cur_degree];
+    node_unit_cur.lAdjBase = new int[node_unit_cur.size];
+    node_unit_cur.lAdjOffset = new int*[node_unit_cur.size];
+    int* l_adj_debug = new int[node_unit_cur_degree];
+    int l_adj_index = 0;
+    int l_adj_base_index = 0;
+    for (int x = 0; x < node_unit_cur.size; x++) {
+      const int cand_cur = node_unit_cur.candidates[x];
+      int l_adj_count = 0;
+      node_unit_cur.lAdjOffset[l_adj_base_index] =
+          new int[data.degree[cand_cur]];
+      for (int y = 0; y < data.degree[cand_cur]; y++) {
+        const int cand_nbr_cur = data.nbr[data.nbrOffset[cand_cur] + y];
+        int j;
+        for (j = l_adj_index; j < l_adj_index + l_adj_count; j++) {
+          if (l_adj_debug[j] == cand_nbr_cur) {
+            node_unit_cur.lAdjacent[j] += 1;
+            node_unit_cur.lAdjOffset[l_adj_base_index][y] = j - l_adj_index;
+            break;
+          }
+        }
+        if (j == l_adj_index + l_adj_count) {
+          // for (j = l_adj_index; j < l_adj_index + l_adj_count; j++) {
+          //   if (cand_nbr_cur < l_adj_debug[j]) break;
+          // }
+          // for (int k = l_adj_index + l_adj_count; k > j; k--) {
+          //   node_unit_cur.lAdjacent[k] = node_unit_cur.lAdjacent[k - 1];
+          //   l_adj_debug[k] = l_adj_debug[k - 1];
+          // }
+          // node_unit_cur.lAdjacent[j] = 1;
+          // l_adj_debug[j] = cand_nbr_cur;
+          node_unit_cur.lAdjacent[l_adj_index + l_adj_count] = 1;
+          node_unit_cur.lAdjOffset[l_adj_base_index][y] = l_adj_count;
+          l_adj_debug[l_adj_index + l_adj_count] = cand_nbr_cur;
+          l_adj_count++;
+        }
+        node_unit_cur
+            .adjLabelCount[x * labelMap.size() + data.label[cand_nbr_cur]]++;
+      }
+      cout << l_adj_count << " ";
+      node_unit_cur.lAdjBase[l_adj_base_index++] = l_adj_index;
+      l_adj_index += l_adj_count;
+    }
+    cout << endl;
+    cout << "[lAdjacent list]" << endl;
+    for (int x = 0; x < node_unit_cur_degree; x++) {
+      cout << setw(2) << l_adj_debug[x] << " ";
+    }
+    cout << endl;
+    for (int x = 0; x < node_unit_cur_degree; x++) {
+      cout << setw(2) << data.label[l_adj_debug[x]] << " ";
+    }
+    cout << endl;
+    for (int x = 0; x < node_unit_cur_degree; x++) {
+      cout << setw(2) << node_unit_cur.lAdjacent[x] << " ";
+    }
+    cout << endl;
+
+    cout << "[Base]" << endl;
+    for (int x = 0; x < node_unit_cur.size; x++) {
+      cout << setw(2) << node_unit_cur.lAdjBase[x] << " ";
+    }
+    cout << endl;
+
+    cout << "[Offset]" << endl;
+    for (int x = 0; x < node_unit_cur.size; x++) {
+      for (int y = 0; y < data.degree[node_unit_cur.candidates[x]]; y++) {
+        cout << setw(2) << node_unit_cur.lAdjOffset[x][y] << " ";
+      }
+    }
+    cout << endl;
+
+    cout << "[adjLabelCount list] (" << labelMap.size() << ")" << endl;
+    for (int x = 0; x < node_unit_cur.size * labelMap.size(); x++) {
+      cout << node_unit_cur.adjLabelCount[x] << " ";
+    }
+    cout << endl;
+  }
 }
 
 inline bool TopDownInitial(const Graph& query, const Graph& data) {

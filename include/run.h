@@ -20,6 +20,7 @@ inline bool BuildCS() {
   if (!filteringWithDAG(*currQ, *currG, bottomUp, childNgb, false))
     return false;
   // Neighbor-safety in the 3rd refinement
+  buildNbrSafetyStructure(*currQ, *currG);
   if (!filteringWithDAG(*currQ, *currG, topDown, parentNgb, true)) return false;
   if (!ConstructAdjacencyList(*currQ, *currG, true)) return false;
   return true;
