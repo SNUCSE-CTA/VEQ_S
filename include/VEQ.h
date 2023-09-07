@@ -4,6 +4,7 @@
 #define __STDC_FORMAT_MACROS
 
 #include <unordered_map>
+#include <unordered_set>
 
 #include "memory.h"
 using namespace std;
@@ -477,86 +478,60 @@ inline void buildNbrSafetyStructure(const Graph& query, const Graph& data) {
   for (int i = 0; i < uSequenceSize; i++) {
     const int query_node_cur = uSequence[i];
     CandidateSpace& node_unit_cur = candSpace[query_node_cur];
-    node_unit_cur.adjLabelCount = new int[node_unit_cur.size * labelMap.size()];
-    int node_unit_cur_degree = 0;
-    for (int x = 0; x < node_unit_cur.size; x++) {
-      node_unit_cur_degree += data.degree[node_unit_cur.candidates[x]];
-    }
-    node_unit_cur.lAdjacent = new int[node_unit_cur_degree];
-    node_unit_cur.lAdjBase = new int[node_unit_cur.size];
-    node_unit_cur.lAdjOffset = new int*[node_unit_cur.size];
-    int* l_adj_debug = new int[node_unit_cur_degree];
-    int l_adj_index = 0;
-    int l_adj_base_index = 0;
+    unordered_map<int, int>* query_node_nbr_map =
+        new unordered_map<int, int>[node_unit_cur.size];
     for (int x = 0; x < node_unit_cur.size; x++) {
       const int cand_cur = node_unit_cur.candidates[x];
-      int l_adj_count = 0;
-      node_unit_cur.lAdjOffset[l_adj_base_index] =
-          new int[data.degree[cand_cur]];
       for (int y = 0; y < data.degree[cand_cur]; y++) {
-        const int cand_nbr_cur = data.nbr[data.nbrOffset[cand_cur] + y];
-        int j;
-        for (j = l_adj_index; j < l_adj_index + l_adj_count; j++) {
-          if (l_adj_debug[j] == cand_nbr_cur) {
-            node_unit_cur.lAdjacent[j] += 1;
-            node_unit_cur.lAdjOffset[l_adj_base_index][y] = j - l_adj_index;
-            break;
+        query_node_nbr_map[x][data.nbr[data.nbrOffset[cand_cur] + y]] = 0;
+      }
+    }
+    for (int x = 0; x < query.degree[query_node_cur]; x++) {
+      const int query_node_nbr = query.nbr[query.nbrOffset[query_node_cur] + x];
+      CandidateSpace& nbr_unit = candSpace[query_node_nbr];
+      for (int y = 0; y < nbr_unit.size; y++) {
+        int cand_ngb = nbr_unit.candidates[y];
+        for (int z = 0; z < node_unit_cur.size; z++) {
+          auto iter = query_node_nbr_map[z].find(cand_ngb);
+          if (iter != query_node_nbr_map[z].end()) {
+            iter->second++;
           }
         }
-        if (j == l_adj_index + l_adj_count) {
-          // for (j = l_adj_index; j < l_adj_index + l_adj_count; j++) {
-          //   if (cand_nbr_cur < l_adj_debug[j]) break;
-          // }
-          // for (int k = l_adj_index + l_adj_count; k > j; k--) {
-          //   node_unit_cur.lAdjacent[k] = node_unit_cur.lAdjacent[k - 1];
-          //   l_adj_debug[k] = l_adj_debug[k - 1];
-          // }
-          // node_unit_cur.lAdjacent[j] = 1;
-          // l_adj_debug[j] = cand_nbr_cur;
-          node_unit_cur.lAdjacent[l_adj_index + l_adj_count] = 1;
-          node_unit_cur.lAdjOffset[l_adj_base_index][y] = l_adj_count;
-          l_adj_debug[l_adj_index + l_adj_count] = cand_nbr_cur;
-          l_adj_count++;
+      }
+    }
+    node_unit_cur.adjLabelCount = new int[node_unit_cur.size * labelMap.size()];
+    node_unit_cur.lAdjBase = new int[node_unit_cur.size];
+    node_unit_cur.lAdjOffset = new int*[node_unit_cur.size];
+    int n_nonzero = 0;
+    for (int x = 0; x < node_unit_cur.size; x++) {
+      int partial_nonzero = 0;
+      for (const auto& iter : query_node_nbr_map[x]) {
+        if (iter.second != 0) partial_nonzero++;
+      }
+      node_unit_cur.lAdjBase[x] = n_nonzero;
+      n_nonzero += partial_nonzero;
+      node_unit_cur.lAdjOffset[x] = new int[partial_nonzero];
+    }
+    node_unit_cur.lAdjacent = new int[n_nonzero];
+    int index = 0;
+    for (int x = 0; x < node_unit_cur.size; x++) {
+      for (const auto& iter : query_node_nbr_map[x]) {
+        if (iter.second > 0) {
+          node_unit_cur
+              .adjLabelCount[x * labelMap.size() + data.label[iter.first]]++;
+          node_unit_cur.lAdjacent[index++] = iter.second;
         }
-        node_unit_cur
-            .adjLabelCount[x * labelMap.size() + data.label[cand_nbr_cur]]++;
       }
-      cout << l_adj_count << " ";
-      node_unit_cur.lAdjBase[l_adj_base_index++] = l_adj_index;
-      l_adj_index += l_adj_count;
     }
-    cout << endl;
     cout << "[lAdjacent list]" << endl;
-    for (int x = 0; x < node_unit_cur_degree; x++) {
-      cout << setw(2) << l_adj_debug[x] << " ";
-    }
-    cout << endl;
-    for (int x = 0; x < node_unit_cur_degree; x++) {
-      cout << setw(2) << data.label[l_adj_debug[x]] << " ";
-    }
-    cout << endl;
-    for (int x = 0; x < node_unit_cur_degree; x++) {
-      cout << setw(2) << node_unit_cur.lAdjacent[x] << " ";
-    }
-    cout << endl;
-
-    cout << "[Base]" << endl;
-    for (int x = 0; x < node_unit_cur.size; x++) {
-      cout << setw(2) << node_unit_cur.lAdjBase[x] << " ";
-    }
-    cout << endl;
-
-    cout << "[Offset]" << endl;
-    for (int x = 0; x < node_unit_cur.size; x++) {
-      for (int y = 0; y < data.degree[node_unit_cur.candidates[x]]; y++) {
-        cout << setw(2) << node_unit_cur.lAdjOffset[x][y] << " ";
-      }
+    for (int x = 0; x < n_nonzero; x++) {
+      cout << setw(2) << node_unit_cur.lAdjacent[x];
     }
     cout << endl;
 
     cout << "[adjLabelCount list] (" << labelMap.size() << ")" << endl;
     for (int x = 0; x < node_unit_cur.size * labelMap.size(); x++) {
-      cout << node_unit_cur.adjLabelCount[x] << " ";
+      cout << setw(2) << node_unit_cur.adjLabelCount[x];
     }
     cout << endl;
   }
@@ -639,7 +614,8 @@ inline bool TopDownInitial(const Graph& query, const Graph& data) {
       }
       checkVal++;  // update the check value by one
     }
-    // For each vertex v with v.cnt = Cnt, if v passes filters, add candidates
+    // For each vertex v with v.cnt = Cnt, if v passes filters, add
+    // candidates
     CandidateSpace& currSet = candSpace[currVertex];
     int candIndex = 0;
     for (int checkIndex = 0; checkIndex < toCleanIndex; checkIndex++) {
@@ -833,8 +809,8 @@ inline bool ConstructAdjacencyList(const Graph& query, const Graph& data,
     }
     // if (DAG_child_query_size[u] == 0) continue;
 
-    // Preprocess u.C 1) to check (if v in u.C) in constant time 2) to know v's
-    // posCand
+    // Preprocess u.C 1) to check (if v in u.C) in constant time 2) to know
+    // v's posCand
     for (int vPos = 0; vPos < currSet.size; ++vPos) {
       candToPos[currSet.candidates[vPos]] = vPos;
     }
@@ -1035,9 +1011,9 @@ inline void GetEquivalence(Stack& retE) {
 inline bool BFS_MM() {
   // BFS function for maximum matching
   /*
-   * Note that in this function, we are NOT manipulating the actual query nodes
-   * and data nodes. Instead, we are dealing with the index in LLC and the data
-   * node index in the sum NEC candidate set.
+   * Note that in this function, we are NOT manipulating the actual query
+   * nodes and data nodes. Instead, we are dealing with the index in LLC and
+   * the data node index in the sum NEC candidate set.
    */
   int* queue = arrayToClean;
   int queueStart = 0;  // use for popping up
@@ -1061,8 +1037,8 @@ inline bool BFS_MM() {
         int v = uCand[nec * maxNumCandidate + j];
         if (dist[pairV[v]] == INT_MAX) {
           dist[pairV[v]] = dist[u] + 1;
-          // here use "u" instead of "nec", because "nec" is only used to get
-          // the candidate set.
+          // here use "u" instead of "nec", because "nec" is only used to
+          // get the candidate set.
           queue[queueEnd++] = pairV[v];
         }
       }
@@ -1107,9 +1083,9 @@ inline void combine(double& cntEmbedding, double resultSoFar) {
     }
   }
   if (maxCandIdx == -1) {
-    // in this case, there is no such a cand that has more than one query node
-    // having it as a candidate hence, we can perform the combination and
-    // permutation to get the result here
+    // in this case, there is no such a cand that has more than one query
+    // node having it as a candidate hence, we can perform the combination
+    // and permutation to get the result here
     double res = 1;
     for (int i = 0; i < NECCountSetSize; i++) {
       if (NECCountSet[i] != localFlagQuery[i]) {
@@ -1142,15 +1118,16 @@ inline void combine(double& cntEmbedding, double resultSoFar) {
   /*
    * The pruning rule here is that :
    *   for this cand, if there exists multiple query nodes covered by it and
-   * those nodes' cand size (the conditional cand size for the nec node) is 1,
-   *   then there is no result. Because, one cand cannot be mapped to multiple
-   * query node at the same time. But if there only exists one such node, then
-   * it is OK to precede and this cand should be mapped to this query node.
+   * those nodes' cand size (the conditional cand size for the nec node) is
+   * 1, then there is no result. Because, one cand cannot be mapped to
+   * multiple query node at the same time. But if there only exists one such
+   * node, then it is OK to precede and this cand should be mapped to this
+   * query node.
    */
 
-  // now we try to map this cand node, and remove it from all candidate regions
-  // that contain it this for loop remove the maxCand from the candidate sets
-  // that contain it
+  // now we try to map this cand node, and remove it from all candidate
+  // regions that contain it this for loop remove the maxCand from the
+  // candidate sets that contain it
   for (int i = 0; i < vCandIndex[maxCand]; i++) {
     // for each query node whose cand set containing it
     // qNodeIndex is the position of this maxCand in the nec node set
@@ -1195,10 +1172,10 @@ inline void combine(double& cntEmbedding, double resultSoFar) {
       continue;
     mapTo[maxCand] = nQueryVertex;
     localFlagQuery[qNodeIndex]++;  // increase the flag value accordingly
-    // here, if the query node "qNodeIndex" has been fully mapped, then we need
-    // to delete it from all the data node's candidate set which containing it,
-    // such  that this query node will not be counted in the future round of
-    // finding the next maxCand
+    // here, if the query node "qNodeIndex" has been fully mapped, then we
+    // need to delete it from all the data node's candidate set which
+    // containing it, such  that this query node will not be counted in the
+    // future round of finding the next maxCand
     if (localFlagQuery[qNodeIndex] == NECCountSet[qNodeIndex]) {
       // this query node is fully mapped
       for (int j = 0; j < NECRegionSize[qNodeIndex]; j++) {
@@ -1235,8 +1212,8 @@ inline void combine(double& cntEmbedding, double resultSoFar) {
         vCandIndex[vNode]++;  // extend the size by one
       }
     }
-    localFlagQuery[qNodeIndex]--;  // reduce this query node's flag, because it
-                                   // has been unmapped.
+    localFlagQuery[qNodeIndex]--;  // reduce this query node's flag, because
+                                   // it has been unmapped.
   }
   mapTo[maxCand] = -1;
   combine(cntEmbedding, resultSoFar);  // recursive function
@@ -1266,8 +1243,8 @@ inline double CountLeafMatch(const Graph& query, double matchFound) {
   memset(necMapping, -1, sizeof(int) * (nQueryVertex + 1));  // for MM
   leafCandIndex = 0;
   // === First scan === fastly identify whether all candidates satisfy the
-  // (cand < nec) and (sumCand < sum_nec). (the sum cands here are not unique
-  // cands)
+  // (cand < nec) and (sumCand < sum_nec). (the sum cands here are not
+  // unique cands)
   for (int i = 0; i < NECSetSize; i++) {
     // for each label
     int c, d, loc;
@@ -1335,8 +1312,8 @@ inline double CountLeafMatch(const Graph& query, double matchFound) {
           if (flagSumNECCand[can] ==
               -1) {  // if not already in the candidate set,
             flagSumNECCand[can] =
-                posSumNECCand;  // and mark it true and indicate its position in
-                                // "sumNECCands"
+                posSumNECCand;  // and mark it true and indicate its
+                                // position in "sumNECCands"
             localSumNECCand[posSumNECCand++] =
                 can;  // then add it into the candidate's "posSumNECCand"
                       // position,
@@ -1345,13 +1322,13 @@ inline double CountLeafMatch(const Graph& query, double matchFound) {
           uCand[j * maxNumCandidate + uCandCounter] =
               flagSumNECCand[can];  // for the maximum matching
           uCandCounter++;
-          leafCand[leafCandIndex++] =
-              can;  // store the candidate for the second stage (combination)
+          leafCand[leafCandIndex++] = can;  // store the candidate for the
+                                            // second stage (combination)
         }
       }
       leafCandInfo[j] = make_pair(startPos, uCandCounter);
-      NECRegionSize[j] = uCandCounter;  // set the size of the j-th candidate
-                                        // set of this nec node
+      NECRegionSize[j] = uCandCounter;  // set the size of the j-th
+                                        // candidate set of this nec node
       sumCand += uCandCounter;
       nSumNECCand[label] = posSumNECCand;  // added on 20:15 09/05/2016
     }
@@ -1362,13 +1339,14 @@ inline double CountLeafMatch(const Graph& query, double matchFound) {
         flagSumNECCand[localSumNECCand[i]] = -1;
       return 0;
     }
-    // after the  "sumNECCands" is initialized, we reset the "flagSumNECCand"
-    // for next time use
+    // after the  "sumNECCands" is initialized, we reset the
+    // "flagSumNECCand" for next time use
     for (int i = 1; i < posSumNECCand; i++)  // it starts from 1 NOT 0
       flagSumNECCand[localSumNECCand[i]] = -1;
     // ================= BEGIN checking MAXIMUM MATCHING =================
     // using nec_region as the adjacent list
-    memset(pairU, NULL, sizeof(int) * nQueryVertex);  // must reset before using
+    memset(pairU, NULL,
+           sizeof(int) * nQueryVertex);  // must reset before using
     memset(pairV, NULL,
            sizeof(int) * currG->nVertex);  // must reset before using
     int matching = 0;
@@ -1394,30 +1372,30 @@ inline double CountLeafMatch(const Graph& query, double matchFound) {
         NECRank[i].second.first;  // the number of node in this nec label set
     labelID = NECElementOffset[posElem].first;
     if (nodeSum == 1) {
-      // ==== CASE ONE : there is only one node in this nec set with this label
-      // we have computed this one in the last step
+      // ==== CASE ONE : there is only one node in this nec set with this
+      // label we have computed this one in the last step
       cntLocalMatchLabel = (long long)NECRank[i].second.second;
       if (cntLocalMatchLabel == 0) return 0;
-    } else {  // ==== CASE TWO : more than one node, and possible more than one
-              // start nodes (nec_units)
+    } else {  // ==== CASE TWO : more than one node, and possible more than
+              // one start nodes (nec_units)
       memset(localFlagQuery, 0, sizeof(char) * nQueryVertex);
-      posSumNECCand = 1;  // omit zero, start from 1 ===> Leave 0 for NULL of
-                          // Maximum Matching
+      posSumNECCand = 1;  // omit zero, start from 1 ===> Leave 0 for NULL
+                          // of Maximum Matching
       int start = NECElementOffset[posElem].second;
       int end = NECElementOffset[posElem + 1].second;
       int localNECSize = end - start;  // number of nec with posElem
-      // ======= sorting here is to decide the processing sequence of the nec
-      // nodes in this nec label set
+      // ======= sorting here is to decide the processing sequence of the
+      // nec nodes in this nec label set
       for (int j = start, x = 0; j < end; j++, x++)
         vNECCount[x] = make_pair(j, query.NECElement[j].sum);
       sort(vNECCount, vNECCount + localNECSize, sortBySecondElement);
       int* toCleanVCandIndex =
-          arrayToClean;  // store the candidates that need to be cleaned for the
-                         // array "vCandIndex"
+          arrayToClean;  // store the candidates that need to be cleaned for
+                         // the array "vCandIndex"
       NECCountSetSize = localNECSize;
       int idxToCleanVCandIndex = 0;
-      // in this loop, for this point beyond, before any return, "vCandIndex"
-      // must be cleaned up using the above two parameters
+      // in this loop, for this point beyond, before any return,
+      // "vCandIndex" must be cleaned up using the above two parameters
       for (int j = 0; j < localNECSize; j++) {
         int necIndex = vNECCount[j].first;
         int necCount = vNECCount[j].second;
@@ -1427,27 +1405,28 @@ inline double CountLeafMatch(const Graph& query, double matchFound) {
         pair<int, int> tempP = leafCandInfo[necIndex];
         for (int x = tempP.first; x < tempP.first + tempP.second; x++) {
           can = leafCand[x];
-          int temp =
-              vCandIndex[can];  // get the position for storing this candidate
+          int temp = vCandIndex[can];  // get the position for storing this
+                                       // candidate
           // the temp-th position of vCandInfo[can] stores a candidate "can"
-          // which is for "j-th" nec node and stored in the "uCandCounter-th"
-          // position in the candidate set
+          // which is for "j-th" nec node and stored in the
+          // "uCandCounter-th" position in the candidate set
           vCandInfo[can][temp] = make_pair(
               j, uCandCounter);  // pair<j-th nec node, can's pos in the
                                  // candidate set of j-th nec node>
-          // store the candidate and its corresponding info ==>  <the candidate
-          // can, the candidate's pos in vCandIndex[can]> in the single-array:
-          // "j-th" nec node and the "uCandCounter-th" position.
+          // store the candidate and its corresponding info ==>  <the
+          // candidate can, the candidate's pos in vCandIndex[can]> in the
+          // single-array: "j-th" nec node and the "uCandCounter-th"
+          // position.
           uCandInfo[j * maxNumCandidate + uCandCounter] = make_pair(can, temp);
           if (temp == 0)  // record for the cleaning purpose
             toCleanVCandIndex[idxToCleanVCandIndex++] = can;
-          vCandIndex[can]++;  // update the counter(next available position) for
-                              // "vCandIndex[can]"
+          vCandIndex[can]++;  // update the counter(next available position)
+                              // for "vCandIndex[can]"
           uCandCounter++;     // update the candidate counter(next available
                               // position)
         }
-        // if the number of candidate for this nec node, is smaller than the nec
-        // count of this nec node, then no result can be found.
+        // if the number of candidate for this nec node, is smaller than the
+        // nec count of this nec node, then no result can be found.
         NECRegionSize[j] = uCandCounter;
       }  // end for j
 
@@ -1458,14 +1437,14 @@ inline double CountLeafMatch(const Graph& query, double matchFound) {
         PRE_COMPUTED_PERMUTATION *= factorization(NECCountSet[i]);
       int* mappedDataVertex = flagSumNECCand;
       int posMappedDataVertex = 0;
-      // in this loop, for this point beyond, before any return, "mapTo" must be
-      // cleaned up using the above two parameters.
+      // in this loop, for this point beyond, before any return, "mapTo"
+      // must be cleaned up using the above two parameters.
       int found = 1;
       while (found > 0) {
         // =============== preprocess before the combination ===============
         found = 0;
-        // first, we scan each nec node, to see whether there exists such a node
-        // that its candidate size is equal to its unmatched nec size
+        // first, we scan each nec node, to see whether there exists such a
+        // node that its candidate size is equal to its unmatched nec size
         for (int i = 0; i < NECCountSetSize; i++) {
           if (NECRegionSize[i] != 0 && NECCountSet[i] > NECRegionSize[i]) {
             while (posMappedDataVertex != 0) {
@@ -1492,23 +1471,23 @@ inline double CountLeafMatch(const Graph& query, double matchFound) {
               for (int x = 0; x < vCandIndex[vNode];
                    x++) {  // x is the position in "vCandInfo[vNode]"
                 int qNodeIndex =
-                    vCandInfo[vNode][x]
-                        .first;  // get the original index in the nec node set
+                    vCandInfo[vNode][x].first;  // get the original index in
+                                                // the nec node set
                 if (qNodeIndex == i) continue;
-                // the position of vNode in the corresponding("qNodeIndex-th")
-                // candidate set.
+                // the position of vNode in the
+                // corresponding("qNodeIndex-th") candidate set.
                 int posInRegion = vCandInfo[vNode][x].second;
                 int regionSize = NECRegionSize[qNodeIndex];
                 if (posInRegion ==
                     regionSize -
                         1)  // this is the last node in the candidate set
                   NECRegionSize[qNodeIndex]--;  // remove this candidate by
-                                                // downsizing the NECRegionSize
-                                                // by one
+                                                // downsizing the
+                                                // NECRegionSize by one
                 else if (posInRegion < regionSize - 1) {
                   // normal case: not the last one.
-                  // swap the two candidates and their corresponding info, then
-                  // downsize the NECRegionSize by one
+                  // swap the two candidates and their corresponding info,
+                  // then downsize the NECRegionSize by one
                   pair<int, int>& tempP =
                       uCandInfo[qNodeIndex * maxNumCandidate + regionSize - 1];
                   int lastCand = tempP.first;
@@ -1910,8 +1889,8 @@ inline void Backtrack(const Graph& query, const Graph& data, int dataGraphID) {
     candPos[root] = ri;
     char backtrack = 0;
     // must reset this to 1 here
-    int depth = 1;  // the current query index of the query sequence, because 0
-                    // is the root has already been matched
+    int depth = 1;  // the current query index of the query sequence,
+                    // because 0 is the root has already been matched
     // 3. For each child uc of r in dag(q)
     updateExtendableRoot(query, ri, root);
     while (true) {
@@ -1994,8 +1973,8 @@ inline void Backtrack(const Graph& query, const Graph& data, int dataGraphID) {
           continue;
         }  // if (currE->addressPos == currE->addressSize || isRedundant)
       }    // if (currE->address == NULL)
-      backtrack = 0;  // actually, this line is not necessary, when processed
-                      // here, the backtrack must be false...
+      backtrack = 0;  // actually, this line is not necessary, when
+                      // processed here, the backtrack must be false...
       while (true) {
         // Break, until find a mapping for this node
         // or cannot find a mapping after examining all candidates
