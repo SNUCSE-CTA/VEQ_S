@@ -17,7 +17,7 @@ This project includes headers inside the `include` directory, `main.cpp` inside 
 
 During program execution and testing, necessary functionalities are provided by `run.h` and `compare.h.` The figure below illustrates the essential steps of the algorithm.
 
-![VEQS_architecture](https://github.com/SNUCSE-CTA/VEQ_S/assets/69783927/88921009-f343-40d2-a0d2-e9d64ca05e5c)
+![VEQS_architecture](https://github.com/SNUCSE-CTA/VEQ_S/assets/83649602/76422cab-ce5e-42b5-b02f-27186859b445)  
 *Figure 1. ProcessQuery execution process in main and associated header file structure*
 
 ## 4. Key Features of the Project
@@ -26,7 +26,7 @@ The VEQs algorithm utilizes static equivalence, dynamic equivalence, and neighbo
 ### 4.1. Subgraph Query Processing Problem
 The subgraph query processing problem involves finding all data graphs that contain subgraphs isomorphic to a given query graph among multiple data graphs and one query graph. For example, in Figure 2, given a set of data graphs $D=\{G_1, G_2\}$ and a query graph $q$, $G_1$ contains a subgraph isomorphic to $q$, but $G_2$ does not. Therefore, the answer is $\{G_1\}$.
 
-![Example of Subgraph Query Processing Problem](https://github.com/SNUCSE-CTA/VEQ_S/assets/69783927/d3de2e66-08d2-4241-a2a0-712317177b2d)
+![Example of Subgraph Query Processing Problem](https://github.com/SNUCSE-CTA/VEQ_S/assets/83649602/fb8b4d4d-bc01-44d5-9204-b630bf2efd87)  
 *Figure 2. Example of the Subgraph Query Processing Problem*
 
 ### 4.2. Overview of the VEQs Algorithm
@@ -38,7 +38,7 @@ In this stage, a query DAG $q_d$ is created by assigning directions to edges of 
 #### 4.2.2. CS Construction Stage
 For each data graph and query graph, an auxiliary data structure called CS is constructed. CS consists of candidate sets $C(u)$ for each vertex $u$ in the query graph and edges between vertices in the candidate vertex set. While DAF, a previous subgraph isomorphism algorithm, proposed CS [3], VEQ reduces the candidate set size using neighbor safety (Figure 3). If the candidate set for a vertex in the query graph is empty, there is no isomorphic subgraph to the query graph. Therefore, the algorithm proceeds to the next data graph. If not, the algorithm moves on to the exploration stage.
 
-![Reducing Candidate Sets](https://github.com/SNUCSE-CTA/VEQ_S/assets/69783927/d8e8d1fa-5633-41fa-abca-c4d78fd4c974)
+![Reducing Candidate Sets](https://github.com/SNUCSE-CTA/VEQ_S/assets/83649602/27b65097-93cc-44e9-a33a-07d1ca6fddc8)  
 *Figure 3. Reducing Candidate Sets*
 
 #### 4.2.3. Exploration Stage
