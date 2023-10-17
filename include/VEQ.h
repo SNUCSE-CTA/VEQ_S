@@ -3,9 +3,6 @@
 #include <cfloat>
 #define __STDC_FORMAT_MACROS
 
-#include <unordered_map>
-#include <unordered_set>
-
 #include "memory.h"
 using namespace std;
 
@@ -422,7 +419,7 @@ inline bool filteringWithDAG(const Graph& query, const Graph& data,
     CandidateSpace& node_unit_cur = candSpace[query_node_cur];
     int new_size = node_unit_cur.size;
     int x = 0;
-    while (x < new_size) {
+    while (x < node_unit_cur.size) {
       const int cand_cur = node_unit_cur.candidates[x];
       bool iSVaildCand = true;
       // 1.3.1 : filtering by parent
@@ -436,44 +433,95 @@ inline bool filteringWithDAG(const Graph& query, const Graph& data,
 
       // 1.3.2 : filtering by cardinality
       if (iSVaildCand && useNbrSafety) {
+        // for (int y = 0; y < index_set_color; y++) {
+        //   int t = 0;
+        //   iter = data.labelToNbrOffset.find(make_pair(cand_cur,
+        //   set_color[y])); if (iter == data.labelToNbrOffset.end()) {
+        //     iSVaildCand = false;
+        //     break;
+        //   }
+        //   for (int z = iter->second.first;
+        //        z < iter->second.first + iter->second.second; ++z) {
+        //     int ngb = data.nbr[z];
+
+        //     if (vis_adj[ngb] == index_vis_adj) {
+        //       ++t;
+        //     }
+        //   }
+        //   if (t < color[set_color[y]][1]) {
+        //     iSVaildCand = false;
+        //     break;
+        //   }
+        // }
         for (int y = 0; y < index_set_color; y++) {
-          int t = 0;
           iter = data.labelToNbrOffset.find(make_pair(cand_cur, set_color[y]));
           if (iter == data.labelToNbrOffset.end()) {
             iSVaildCand = false;
             break;
           }
-          for (int z = iter->second.first;
-               z < iter->second.first + iter->second.second; ++z) {
-            int ngb = data.nbr[z];
-
-            if (vis_adj[ngb] == index_vis_adj) {
-              ++t;
-            }
-          }
-          if (t < color[set_color[y]][1]) {
+          if (adj_label_count[i][x * labelMap.size() + set_color[y]] <
+              color[set_color[y]][1]) {
             iSVaildCand = false;
             break;
           }
         }
       }
       // 1.3.3 : remain or remove
+      // if (!iSVaildCand) {
+      //   int y = node_unit_cur.candidates[new_size - 1];
+      //   node_unit_cur.candidates[x] = y;
+      //   --new_size;
+      // } else {
+      //   ++x;
+      // }
       if (!iSVaildCand) {
-        int y = node_unit_cur.candidates[new_size - 1];
-        node_unit_cur.candidates[x] = y;
-        --new_size;
-      } else {
-        ++x;
+        if (useNbrSafety) {
+          for (int y = 0; y < data.nVertex; y++) {
+            int u_target = ngb_offset[node_unit_cur.candidates[x]][y].first;
+            int u_v = ngb_offset[node_unit_cur.candidates[x]][y].second;
+            if (u_target >= 0) {
+              adj_label_count[u_target]
+                             [u_v * labelMap.size() +
+                              data.label[node_unit_cur.candidates[x]]]--;
+            }
+          }
+          for (int z = 0; z < labelMap.size(); z++) {
+            adj_label_count[i][x * labelMap.size() + z] = -1;
+          }
+        }
+        new_size--;
+      }
+      ++x;
+    }
+    if (useNbrSafety) {
+      for (int x = 0; x < node_unit_cur.size; x++) {
+        if (adj_label_count[i][x * labelMap.size()] < 0) {
+          for (int y = x + 1; y < node_unit_cur.size; y++) {
+            node_unit_cur.candidates[y - 1] = node_unit_cur.candidates[y];
+          }
+        }
       }
     }
-    if (new_size == 0) return false;
     node_unit_cur.size = new_size;
+    if (new_size == 0) return false;
   }
 
   return true;
 }
 
 inline void buildNbrSafetyStructure(const Graph& query, const Graph& data) {
+  // Allocate memory
+  cand_adj_label = new int*[uSequenceSize];
+  adj_label_count = new int*[uSequenceSize];
+  ngb_base = new unordered_map<int, int>[uSequenceSize];
+  ngb_offset = new pair<int, int>*[data.nVertex];
+  for (int i = 0; i < data.nVertex; i++) {
+    ngb_offset[i] = new pair<int, int>[data.nVertex];
+    for (int j = 0; j < data.nVertex; j++) {
+      // ngb_offser[i][j].first = u_i, ngb_offser[i][j].second = x
+      ngb_offset[i][j] = make_pair(-1, -1);
+    }
+  }
   // Build structure for efficient neighbor safety
   for (int i = 0; i < uSequenceSize; i++) {
     const int query_node_cur = uSequence[i];
@@ -490,7 +538,7 @@ inline void buildNbrSafetyStructure(const Graph& query, const Graph& data) {
       const int query_node_nbr = query.nbr[query.nbrOffset[query_node_cur] + x];
       CandidateSpace& nbr_unit = candSpace[query_node_nbr];
       for (int y = 0; y < nbr_unit.size; y++) {
-        int cand_ngb = nbr_unit.candidates[y];
+        const int cand_ngb = nbr_unit.candidates[y];
         for (int z = 0; z < node_unit_cur.size; z++) {
           auto iter = query_node_nbr_map[z].find(cand_ngb);
           if (iter != query_node_nbr_map[z].end()) {
@@ -499,42 +547,59 @@ inline void buildNbrSafetyStructure(const Graph& query, const Graph& data) {
         }
       }
     }
-    node_unit_cur.adjLabelCount = new int[node_unit_cur.size * labelMap.size()];
-    node_unit_cur.lAdjBase = new int[node_unit_cur.size];
-    node_unit_cur.lAdjOffset = new int*[node_unit_cur.size];
+    adj_label_count[i] = new int[node_unit_cur.size * labelMap.size()];
+    memset(adj_label_count[i], 0,
+           sizeof(int) * node_unit_cur.size * labelMap.size());
     int n_nonzero = 0;
     for (int x = 0; x < node_unit_cur.size; x++) {
       int partial_nonzero = 0;
       for (const auto& iter : query_node_nbr_map[x]) {
-        if (iter.second != 0) partial_nonzero++;
+        if (iter.second != 0) {
+          ngb_offset[iter.first][node_unit_cur.candidates[x]].first = i;
+          ngb_offset[iter.first][node_unit_cur.candidates[x]].second = x;
+          partial_nonzero++;
+        }
       }
-      node_unit_cur.lAdjBase[x] = n_nonzero;
+      ngb_base[i][node_unit_cur.candidates[x]] = n_nonzero;
       n_nonzero += partial_nonzero;
-      node_unit_cur.lAdjOffset[x] = new int[partial_nonzero];
     }
-    node_unit_cur.lAdjacent = new int[n_nonzero];
+    cand_adj_label[i] = new int[n_nonzero];
     int index = 0;
     for (int x = 0; x < node_unit_cur.size; x++) {
       for (const auto& iter : query_node_nbr_map[x]) {
         if (iter.second > 0) {
-          node_unit_cur
-              .adjLabelCount[x * labelMap.size() + data.label[iter.first]]++;
-          node_unit_cur.lAdjacent[index++] = iter.second;
+          adj_label_count[i][x * labelMap.size() + data.label[iter.first]]++;
+          cand_adj_label[i][index++] = iter.second;
         }
       }
     }
-    cout << "[lAdjacent list]" << endl;
-    for (int x = 0; x < n_nonzero; x++) {
-      cout << setw(2) << node_unit_cur.lAdjacent[x];
-    }
-    cout << endl;
+    delete[] query_node_nbr_map;
+    // cout << "[cand_adj_label]" << endl;
+    // for (int x = 0; x < n_nonzero; x++) {
+    //   cout << setw(2) << cand_adj_label[i][x];
+    // }
+    // cout << endl;
 
-    cout << "[adjLabelCount list] (" << labelMap.size() << ")" << endl;
-    for (int x = 0; x < node_unit_cur.size * labelMap.size(); x++) {
-      cout << setw(2) << node_unit_cur.adjLabelCount[x];
-    }
-    cout << endl;
+    // cout << "[adj_label_count] (" << labelMap.size() << ")" << endl;
+    // for (int x = 0; x < node_unit_cur.size * labelMap.size(); x++) {
+    //   cout << setw(2) << adj_label_count[i][x];
+    // }
+    // cout << endl;
   }
+}
+
+inline void FreeNbrSafetyStructure(Graph& data) {
+  for (int i = 0; i < uSequenceSize; i++) {
+    delete[] cand_adj_label[i];
+    delete[] adj_label_count[i];
+  }
+  delete[] cand_adj_label;
+  delete[] adj_label_count;
+  delete[] ngb_base;
+  for (int i = 0; i < data.nVertex; i++) {
+    delete[] ngb_offset[i];
+  }
+  delete[] ngb_offset;
 }
 
 inline bool TopDownInitial(const Graph& query, const Graph& data) {

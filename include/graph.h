@@ -212,8 +212,6 @@ struct CandidateSpace {
              // the j-th candidate of the parent.
   int* adjLabelCount = NULL;
   int* lAdjacent = NULL;
-  int* lAdjBase = NULL;
-  int** lAdjOffset = NULL;
 
   int** capacity = NULL;
   int** capacityNgb = NULL;
