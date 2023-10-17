@@ -49,6 +49,10 @@ The project repository supports extensive experiments on well-known real dataset
 Additionally, continuous integration (CI) is used to execute scripts that check if the program correctly reads graphs, providing automated testing for this script, enhancing stability and reliability.
 
 ## 5. How to run
+Build the library
+```bash
+./build_library.sh
+```
 Compile and make an executable binary
 ```bash
 make
