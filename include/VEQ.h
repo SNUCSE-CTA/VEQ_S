@@ -1291,13 +1291,12 @@ inline double CountLeafMatch(const Graph& query, double matchFound) {
       flagSumNECCand[localSumNECCand[i]] = -1;
     // ================= BEGIN checking MAXIMUM MATCHING =================
     // using nec_region as the adjacent list
-    memset(pairU, NULL, sizeof(int) * nQueryVertex);  // must reset before using
-    memset(pairV, NULL,
-           sizeof(int) * currG->nVertex);  // must reset before using
+    memset(pairU, 0, sizeof(int) * nQueryVertex);    // must reset before using
+    memset(pairV, 0, sizeof(int) * currG->nVertex);  // must reset before using
     int matching = 0;
     while (BFS_MM()) {
       for (int u = 1; u < nodeIndex; u++)
-        if (pairU[u] == NULL)
+        if (pairU[u] == 0)
           if (DFS_MM(u)) matching++;
     }
     if (matching != nodeIndex - 1) {
@@ -1704,7 +1703,7 @@ void updateAncestors(int uCurr) {
   }
 }
 
-int updateMappingQueryVer(int uCurr, int depth) {
+void updateMappingQueryVer(int uCurr, int depth) {
   isMapped[uCurr] = true;
   order[uCurr] = depth;
   updateAncestors(uCurr);
