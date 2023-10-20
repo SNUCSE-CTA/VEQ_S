@@ -1,3 +1,5 @@
+#include <gtest/gtest.h>
+
 #include "compare.h"
 
 TEST(compare_test, compare_test_1) {
