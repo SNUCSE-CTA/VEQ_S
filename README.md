@@ -49,10 +49,6 @@ The project repository supports extensive experiments on well-known real dataset
 Additionally, continuous integration (CI) is used to execute scripts that check if the program correctly reads graphs, providing automated testing for this script, enhancing stability and reliability.
 
 ## 5. How to run
-Build the library
-```bash
-./build_library.sh
-```
 Compile and make an executable binary
 ```bash
 make
@@ -73,10 +69,25 @@ Remove all binaries and object files
 ```bash
 make clean
 ```
-## 6. Expected Impact and Application Areas
+## 6. Library Build and Python Binding
+Build the library
+```bash
+./build_library.sh
+```
+Alternatively, the library can also be built using the following method.
+```bash
+cd libVEQ
+make
+cd ..
+```
+Through the provided `run` function within the `libVEQ.so` library, the same functionality as the `VEQ_S` binary can be tested. This feature is available in `libVEQ/binding.py`, and its usage is identical to `VEQ_S`. Below is an example execution command.
+```bash
+python3 libVEQ/binding.py -dg graph/data/COLLAB.gfu -qg graph/query/COLLAB/randomwalk/8/q30.gfu
+```
+## 7. Expected Impact and Application Areas
 Currently, big data is being generated at a rapid pace, and services utilizing this data are advancing significantly. The generation and analysis of graph big data are also becoming active, leading to an increasing demand for efficient algorithms for large-scale graph problems. The technology developed in this project can be used for tasks such as searching for specific patterns in big data graphs and aiding in drug development. This graph analysis technology is expected to facilitate toxicological analysis, a crucial step in drug development. In fact, the startup Inc. AIgenDrug has successfully utilized the technology from this project to quickly address toxicity analysis of compound data.
 
-## 7. References
+## 8. References
 [1] H. Kim, Y. Choi, K. Park, X. Lin, S.-H. Hong, and W.-S. Han. 2021. Versatile equivalences: Speeding up subgraph query processing and subgraph matching. In Proceedings of ACM SIGMOD.
 
 [2] H. Kim, Y. Choi, K. Park, X. Lin, S.-H. Hong, and W.-S. Han. 2023. Fast subgraph query processing and subgraph matching via static and dynamic equivalences. The VLDB Journal, 32.
