@@ -70,6 +70,13 @@ Remove all binaries and object files
 make clean
 ```
 ## 6. Library Build and Python Binding
+
+## 6.1. Requirements
+- pybind11 is required for Python binding. pybind11 installation guide is available on the [official document](https://pybind11.readthedocs.io/en/stable/installing.html).
+- Adding the path for pybind11 to the include path may be required. This can be done by executing the following command. `export CPLUS_INCLUDE_PATH=<path-to-pybind11>:$CPLUS_INCLUDE_PATH`. Alternatively, the following argument can be added to the compile command in `build_library.sh`. `-I"<path-to-pybind11>"`. The argument `<path-to-pybind11>` depends on the system. In the case of the development environment, it was `/opt/homebrew/Cellar/pybind11/2.11.1/include`.
+- Adding python related headers to the include path may also be required. This can be done by executing the following command. `export CPLUS_INCLUDE_PATH=<path-to-required-headers>:$CPLUS_INCLUDE_PATH`. Alternatively, the following argument can be added to the compile command in `build_library.sh`. `-I"<path-to-required-headers>"`. The argument `<path-to-required-headers>` depends on the system. In the case of the development environment, it was `/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.8/Headers`.
+
+## 6.2. Building the library
 Build the library
 ```bash
 ./build_library.sh
