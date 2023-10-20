@@ -7,7 +7,7 @@ void run(int argc, char *argv[]) {
   setvbuf(stdout, NULL, _IOLBF, 0);
   int queryFormat = GFU_FORMAT;
   int dataFormat = GFU_FORMAT;
-  for (int i = 1; i < argc; ++i) {
+  for (int i = 0; i < argc; ++i) {
     if (argv[i][0] == '-') {
       switch (argv[i][1]) {
         case 'd':

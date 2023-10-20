@@ -1,11 +1,10 @@
+import sys
+
 import libVEQ
 
+if len(sys.argv) != 5:
+    print("Invalid arguments")
+
 libVEQ.run(
-    [
-        "dummy",
-        "-dg",
-        "graph/data/COLLAB.gfu",
-        "-qg",
-        "graph/query/COLLAB/randomwalk/8/q30.gfu",
-    ],
+    sys.argv[1:],
 )
