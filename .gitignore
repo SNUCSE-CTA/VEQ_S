@@ -36,6 +36,9 @@ output
 VEQ_S
 test_run
 
+# library files
+build/
+
 # Other
 .DS_Store
 .vscode/

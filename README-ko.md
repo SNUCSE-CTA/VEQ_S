@@ -17,7 +17,7 @@
 
 프로그램의 실행과 테스트 수행 시에는 각각 run.h과 compare.h에서 필요한 기능을 제공한다. 아래 그림은 핵심적인 알고리즘의 수행 단계를 보여준다.
 
-![VEQS_architecture](https://github.com/SNUCSE-CTA/VEQ_S/assets/69783927/88921009-f343-40d2-a0d2-e9d64ca05e5c)
+![VEQS_architecture](https://github.com/SNUCSE-CTA/VEQ_S/assets/83649602/76422cab-ce5e-42b5-b02f-27186859b445)  
 *그림 1. main에서 수행되는 ProcessQuery의 과정 및 연관된 헤더 파일 구조*
 
 ## 4. 프로젝트 주요기능
@@ -27,7 +27,7 @@ VEQs 알고리즘은 static equivalence와 dynamic equivalence, 그리고 이웃
 부분 그래프 질의 문제는 다수의 데이터 그래프와 하나의 쿼리 그래프가 주어졌을 때 쿼리 그래프와 동형(isomorphic)인 부분 그래프를 포함하는 모든 데이터 그래프를 찾아내는 문제이다. 예를 들어, 그림 2에서 데이터 그래프 집합 $D=\{G_1, G_2\}$와 쿼리 그래프 $q$가 주어졌을 때, $G_1$은 $q$와 동형인
 부분 그래프를 가지지만 $G_2$는 그렇지 않으므로, 정답은 $\{G_1\}$이 된다.
 
-![부분 그래프 질의 문제의 예시](https://github.com/SNUCSE-CTA/VEQ_S/assets/69783927/d3de2e66-08d2-4241-a2a0-712317177b2d)
+![부분 그래프 질의 문제의 예시](https://github.com/SNUCSE-CTA/VEQ_S/assets/83649602/fb8b4d4d-bc01-44d5-9204-b630bf2efd87)  
 *그림 2. 부분 그래프 질의 문제의 예시*
 
 ### 4.2. VEQs 알고리즘 개요
@@ -39,7 +39,7 @@ VEQs [1, 2]는 filtering-verification 방법을 따르는 알고리즘으로, (1
 #### 4.2.2. CS 구축 단계
 각 데이터 그래프와 쿼리 그래프에 대해 보조 자료구조인 CS를 만든다. CS는 쿼리 그래프의 각 정점 $u$에 대한 후보 집합(candidate set) $C(u)$와 후보 정점 집합의 정점들 사이의 간선으로 구성된다. CS는 이전에 부분 그래프 동형 알고리즘인 DAF가 제안하였으나 [3], VEQ는 이웃 안전성을 사용해 DAF의 것보다 작은 후보 집합을 얻는다 (그림 3). 쿼리 그래프의 어느 한 정점에 대해서라 도 그 후보 집합이 비어 있다면 동형인 쿼리 그래프와 동형인 부분 그래프가 없으므로 다음 데이터 그래프로 진행하고, 그렇지 않다면 탐색하기 단계로 넘어간다.
 
-![후보 집합 줄이기](https://github.com/SNUCSE-CTA/VEQ_S/assets/69783927/d8e8d1fa-5633-41fa-abca-c4d78fd4c974)
+![후보 집합 줄이기](https://github.com/SNUCSE-CTA/VEQ_S/assets/83649602/27b65097-93cc-44e9-a33a-07d1ca6fddc8)  
 *그림 3. 후보 집합 줄이기*
 
 #### 4.2.3. 탐색 단계

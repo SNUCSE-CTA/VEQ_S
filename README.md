@@ -17,7 +17,7 @@ This project includes headers inside the `include` directory, `main.cpp` inside 
 
 During program execution and testing, necessary functionalities are provided by `run.h` and `compare.h.` The figure below illustrates the essential steps of the algorithm.
 
-![VEQS_architecture](https://github.com/SNUCSE-CTA/VEQ_S/assets/69783927/88921009-f343-40d2-a0d2-e9d64ca05e5c)
+![VEQS_architecture](https://github.com/SNUCSE-CTA/VEQ_S/assets/83649602/76422cab-ce5e-42b5-b02f-27186859b445)  
 *Figure 1. ProcessQuery execution process in main and associated header file structure*
 
 ## 4. Key Features of the Project
@@ -26,7 +26,7 @@ The VEQs algorithm utilizes static equivalence, dynamic equivalence, and neighbo
 ### 4.1. Subgraph Query Processing Problem
 The subgraph query processing problem involves finding all data graphs that contain subgraphs isomorphic to a given query graph among multiple data graphs and one query graph. For example, in Figure 2, given a set of data graphs $D=\{G_1, G_2\}$ and a query graph $q$, $G_1$ contains a subgraph isomorphic to $q$, but $G_2$ does not. Therefore, the answer is $\{G_1\}$.
 
-![Example of Subgraph Query Processing Problem](https://github.com/SNUCSE-CTA/VEQ_S/assets/69783927/d3de2e66-08d2-4241-a2a0-712317177b2d)
+![Example of Subgraph Query Processing Problem](https://github.com/SNUCSE-CTA/VEQ_S/assets/83649602/fb8b4d4d-bc01-44d5-9204-b630bf2efd87)  
 *Figure 2. Example of the Subgraph Query Processing Problem*
 
 ### 4.2. Overview of the VEQs Algorithm
@@ -38,7 +38,7 @@ In this stage, a query DAG $q_d$ is created by assigning directions to edges of 
 #### 4.2.2. CS Construction Stage
 For each data graph and query graph, an auxiliary data structure called CS is constructed. CS consists of candidate sets $C(u)$ for each vertex $u$ in the query graph and edges between vertices in the candidate vertex set. While DAF, a previous subgraph isomorphism algorithm, proposed CS [3], VEQ reduces the candidate set size using neighbor safety (Figure 3). If the candidate set for a vertex in the query graph is empty, there is no isomorphic subgraph to the query graph. Therefore, the algorithm proceeds to the next data graph. If not, the algorithm moves on to the exploration stage.
 
-![Reducing Candidate Sets](https://github.com/SNUCSE-CTA/VEQ_S/assets/69783927/d8e8d1fa-5633-41fa-abca-c4d78fd4c974)
+![Reducing Candidate Sets](https://github.com/SNUCSE-CTA/VEQ_S/assets/83649602/27b65097-93cc-44e9-a33a-07d1ca6fddc8)  
 *Figure 3. Reducing Candidate Sets*
 
 #### 4.2.3. Exploration Stage
@@ -69,10 +69,32 @@ Remove all binaries and object files
 ```bash
 make clean
 ```
-## 6. Expected Impact and Application Areas
+## 6. Library Build and Python Binding
+
+## 6.1. Requirements
+- pybind11 is required for Python binding. pybind11 installation guide is available on the [official document](https://pybind11.readthedocs.io/en/stable/installing.html).
+- Adding the path for pybind11 to the include path may be required. This can be done by executing the following command. `export CPLUS_INCLUDE_PATH=<path-to-pybind11>:$CPLUS_INCLUDE_PATH`. Alternatively, the following argument can be added to the compile command in `build_library.sh`. `-I"<path-to-pybind11>"`. The argument `<path-to-pybind11>` depends on the system. In the case of the development environment, it was `/opt/homebrew/Cellar/pybind11/2.11.1/include`.
+- Adding python related headers to the include path may also be required. This can be done by executing the following command. `export CPLUS_INCLUDE_PATH=<path-to-required-headers>:$CPLUS_INCLUDE_PATH`. Alternatively, the following argument can be added to the compile command in `build_library.sh`. `-I"<path-to-required-headers>"`. The argument `<path-to-required-headers>` depends on the system. In the case of the development environment, it was `/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.8/Headers`.
+
+## 6.2. Building the library
+Build the library
+```bash
+./build_library.sh
+```
+Alternatively, the library can also be built using the following method.
+```bash
+cd libVEQ
+make
+cd ..
+```
+Through the provided `run` function within the `libVEQ.so` library, the same functionality as the `VEQ_S` binary can be tested. This feature is available in `libVEQ/binding.py`, and its usage is identical to `VEQ_S`. Below is an example execution command.
+```bash
+python3 libVEQ/binding.py -dg graph/data/COLLAB.gfu -qg graph/query/COLLAB/randomwalk/8/q30.gfu
+```
+## 7. Expected Impact and Application Areas
 Currently, big data is being generated at a rapid pace, and services utilizing this data are advancing significantly. The generation and analysis of graph big data are also becoming active, leading to an increasing demand for efficient algorithms for large-scale graph problems. The technology developed in this project can be used for tasks such as searching for specific patterns in big data graphs and aiding in drug development. This graph analysis technology is expected to facilitate toxicological analysis, a crucial step in drug development. In fact, the startup Inc. AIgenDrug has successfully utilized the technology from this project to quickly address toxicity analysis of compound data.
 
-## 7. References
+## 8. References
 [1] H. Kim, Y. Choi, K. Park, X. Lin, S.-H. Hong, and W.-S. Han. 2021. Versatile equivalences: Speeding up subgraph query processing and subgraph matching. In Proceedings of ACM SIGMOD.
 
 [2] H. Kim, Y. Choi, K. Park, X. Lin, S.-H. Hong, and W.-S. Han. 2023. Fast subgraph query processing and subgraph matching via static and dynamic equivalences. The VLDB Journal, 32.

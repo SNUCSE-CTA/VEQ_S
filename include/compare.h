@@ -1,8 +1,6 @@
-#include <gtest/gtest.h>
-
 #include "run.h"
 
-void compare(string dataGraphFile, string queryGraphFile, string resultFile) {
+bool compare(string dataGraphFile, string queryGraphFile, string resultFile) {
   ReadGFUFormat(dataGraphFile, dataGraph);
   ProcessDataGraphs();
   AllocateForDataGraph();
@@ -23,16 +21,18 @@ void compare(string dataGraphFile, string queryGraphFile, string resultFile) {
     expectedResult.push_back(num);
   }
 
-  EXPECT_EQ(recursiveCallCount, expectedResult[0]);
-  EXPECT_EQ(nCandidate, expectedResult[1]);
-  EXPECT_EQ(nMatch, expectedResult[2]);
+  if (recursiveCallCount != expectedResult[0]) return false;
+  if (nCandidate != expectedResult[1]) return false;
+  if ((long long)nMatch != expectedResult[2]) return false;
   vector<int>::iterator expectedResultIter = expectedResult.begin() + 3;
   for (int g = 0; g < nGraph; ++g) {
     bool inExpectedResult =
         expectedResultIter != expectedResult.end() && *expectedResultIter == g;
-    EXPECT_EQ(answer[g], inExpectedResult);
+    if (answer[g] != inExpectedResult) return false;
     if (inExpectedResult) expectedResultIter++;
   }
 
   initialize(dataGraph, queryGraph);
+
+  return true;
 }
