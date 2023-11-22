@@ -476,13 +476,24 @@ inline bool filteringWithDAG(const Graph& query, const Graph& data,
       // }
       if (!iSVaildCand) {
         if (useNbrSafety) {
-          for (int y = 0; y < data.nVertex; y++) {
-            int u_target = ngb_offset[node_unit_cur.candidates[x]][y].first;
-            int u_v = ngb_offset[node_unit_cur.candidates[x]][y].second;
-            if (u_target >= 0) {
-              adj_label_count[u_target]
-                             [u_v * labelMap.size() +
-                              data.label[node_unit_cur.candidates[x]]]--;
+          for (int y = 0; y < data.degree[cand_cur]; y++) {
+            const int cand_ngb = data.nbr[data.nbrOffset[cand_cur] + y];
+            for (int z = 0; z < uSequenceSize; z++) {
+              auto iter = ngb_base[z].find(cand_ngb);
+              if (iter != ngb_base[z].end()) {
+                cand_adj_label[z]
+                              [iter->second + ngb_offset[cand_cur][cand_ngb]]--;
+                if (!cand_adj_label[z][iter->second +
+                                       ngb_offset[cand_cur][cand_ngb]]) {
+                  for (int w = 0; w < candSpace[uSequence[z]].size; w++) {
+                    if (candSpace[uSequence[z]].candidates[w] == cand_ngb) {
+                      adj_label_count[z][w * labelMap.size() +
+                                         data.label[cand_ngb]]--;
+                      break;
+                    }
+                  }
+                }
+              }
             }
           }
           for (int z = 0; z < labelMap.size(); z++) {
@@ -514,13 +525,10 @@ inline void buildNbrSafetyStructure(const Graph& query, const Graph& data) {
   cand_adj_label = new int*[uSequenceSize];
   adj_label_count = new int*[uSequenceSize];
   ngb_base = new unordered_map<int, int>[uSequenceSize];
-  ngb_offset = new pair<int, int>*[data.nVertex];
+  ngb_offset = new int*[data.nVertex];
   for (int i = 0; i < data.nVertex; i++) {
-    ngb_offset[i] = new pair<int, int>[data.nVertex];
-    for (int j = 0; j < data.nVertex; j++) {
-      // ngb_offser[i][j].first = u_i, ngb_offser[i][j].second = x
-      ngb_offset[i][j] = make_pair(-1, -1);
-    }
+    ngb_offset[i] = new int[data.nVertex];
+    memset(ngb_offset[i], 0, sizeof(int) * data.nVertex);
   }
   // Build structure for efficient neighbor safety
   for (int i = 0; i < uSequenceSize; i++) {
@@ -555,8 +563,7 @@ inline void buildNbrSafetyStructure(const Graph& query, const Graph& data) {
       int partial_nonzero = 0;
       for (const auto& iter : query_node_nbr_map[x]) {
         if (iter.second != 0) {
-          ngb_offset[iter.first][node_unit_cur.candidates[x]].first = i;
-          ngb_offset[iter.first][node_unit_cur.candidates[x]].second = x;
+          ngb_offset[iter.first][node_unit_cur.candidates[x]] = partial_nonzero;
           partial_nonzero++;
         }
       }
@@ -573,18 +580,10 @@ inline void buildNbrSafetyStructure(const Graph& query, const Graph& data) {
         }
       }
     }
+    for (int j = 0; j < node_unit_cur.size; j++) {
+      query_node_nbr_map[j].clear();
+    }
     delete[] query_node_nbr_map;
-    // cout << "[cand_adj_label]" << endl;
-    // for (int x = 0; x < n_nonzero; x++) {
-    //   cout << setw(2) << cand_adj_label[i][x];
-    // }
-    // cout << endl;
-
-    // cout << "[adj_label_count] (" << labelMap.size() << ")" << endl;
-    // for (int x = 0; x < node_unit_cur.size * labelMap.size(); x++) {
-    //   cout << setw(2) << adj_label_count[i][x];
-    // }
-    // cout << endl;
   }
 }
 
@@ -592,6 +591,7 @@ inline void FreeNbrSafetyStructure(Graph& data) {
   for (int i = 0; i < uSequenceSize; i++) {
     delete[] cand_adj_label[i];
     delete[] adj_label_count[i];
+    ngb_base[i].clear();
   }
   delete[] cand_adj_label;
   delete[] adj_label_count;

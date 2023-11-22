@@ -40,7 +40,7 @@ int index_ngb_existence = 0;
 int** cand_adj_label;
 int** adj_label_count;
 unordered_map<int, int>* ngb_base;
-pair<int, int>** ngb_offset;
+int** ngb_offset;
 double s1 = 0;
 double s2 = 0;
 #ifdef HUGE_GRAPH
