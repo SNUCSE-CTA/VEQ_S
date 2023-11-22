@@ -4,11 +4,18 @@
 
 using namespace std;
 
+#ifdef PRUNING_BY_EQUIVALENCE_SETS
 unordered_map<Array, int, ArrayHash> cellToID;
+#ifdef SUBGRAPH_MATCHING
+vector<int> cellPos;
+vector<int> cellList;
+#else
 int* cellPos;
 int* cellList;
+#endif
 unordered_map<Array, int, ArrayHash>::iterator uIter;
 unordered_map<int, Array>::iterator iIter;
+#endif
 
 Stack element[MAX_NUM_VERTEX];
 Stack* currE;
@@ -51,11 +58,17 @@ int orderDAG[MAX_NUM_VERTEX];
 // Main result variables
 int nCandidate = 0;
 double nMatch, nCurrMatch, nRemainingMatch;
+#ifdef SUBGRAPH_MATCHING
+const double nMaxMatch = 100000;
+#else
+const double nMaxMatch = 1;
+#endif
 long long int recursiveCallCount = 0;
 long long int recursiveCallCountPerGraph;
 bool* answer;
 
 inline void AllocateForDataGraph() {
+#ifdef FILTERING_BY_NEIGHBOR_SAFETY
 #ifdef HUGE_GRAPH
   DATAV = maxNumDataVertex + 10;
   LABEL = nUniqueLabel + 10;
@@ -86,6 +99,7 @@ inline void AllocateForDataGraph() {
     cnt_included_cs[i] = (lint)(0);
   }
 #endif
+#endif
   pairV = new int[maxNumDataVertex];
 
   vCandIndex = new int[maxNumDataVertex];
@@ -112,8 +126,104 @@ inline void AllocateForDataGraph() {
 
   answer = new bool[nGraph];
   memset(answer, false, sizeof(bool) * nGraph);
+#ifdef PRUNING_BY_EQUIVALENCE_SETS
+#ifdef SUBGRAPH_MATCHING
+  cellPos.reserve(maxNumCandidate);
+  cellList.reserve(maxNumDataVertex);
+#else
   cellPos = new int[maxNumCandidate];
   cellList = new int[maxNumDataVertex];
+#endif
+#endif
+}
+
+inline void Deallocate(Graph& query) {
+  delete[] query.NECMapping;
+  delete[] query.NECElement;
+  delete[] query.NECMap;
+#ifdef LEAF_ADAPTIVE_MATCHING
+  delete[] query.isProblemLeaf;
+#endif
+#ifndef TEST
+  leafCand.clear();
+  delete[] leafCandInfo;
+  delete[] necMapping;
+  delete[] uCand;
+  delete[] pairU;
+  delete[] uCandInfo;
+  for (int i = 0; i < maxNumDataVertex; ++i) vCandInfo[i].clear();
+
+#ifdef PRUNING_BY_EQUIVALENCE_SETS
+#ifdef SUBGRAPH_MATCHING
+  delete[] nActive;
+  for (int i = 0; i < maxNumDataVertex; ++i) delete[] active[i];
+  delete[] active;
+#endif
+#endif
+  for (int i = 0; i < nQueryVertex; i++) {
+    delete[] element[i].failingSet;
+#ifdef PRUNING_BY_EQUIVALENCE_SETS
+    delete[] element[i].conflictCell;
+    delete[] element[i].isPruned;
+    delete[] element[i].pruned;
+#ifdef SUBGRAPH_MATCHING
+    delete[] element[i].nonConflictCell;
+    delete[] element[i].neverVisited;
+    delete[] element[i].nFoundMatch;
+#endif
+#endif
+#ifdef LEAF_ADAPTIVE_MATCHING
+    delete[] element[i].problemChild;
+#endif
+#ifdef CANDIDATE_VERTEX_WITH_MAX
+    delete[] element[i].isVisited;
+#endif
+    for (int j = 0; j < MAX_QUERY_DEGREE; j++) delete[] iec[i][j];
+    if (useFailingSet) delete[] ancestors[i];
+  }
+
+  // For BuildDAG
+  for (int i = 0; i < nQueryVertex; i++) {
+#ifdef NEIGHBOR_LABEL_FREQUENCY
+    delete[] NLFArray[i];
+#endif
+    delete[] DAG_parent_query[i];
+  }
+  for (int i = 0; i < nQueryVertex; i++) {
+    delete[] DAG_ngb_query_ngb_index[i];
+    delete[] DAG_ngb_query[i];
+  }
+
+  // For ConstructAdjacencyList
+  for (int u = 0; u < nQueryVertex; ++u) {
+    CandidateSpace& currSet = candSpace[u];
+    delete[] currSet.candidates;
+    delete[] currSet.weight;
+#ifdef N_OPTIMIZATION  //[if]
+    for (int k = 0; k < query.maxDegree; ++k) {
+      delete[] currSet.nAdjacent[k];
+      delete[] currSet.adjacent[k];
+      delete[] currSet.capacity[k];
+    }
+    delete[] currSet.capacity;
+#else   //[else]
+    delete[] currSet.nParentCand;
+#endif  //[end]
+
+    delete[] currSet.nAdjacent;
+    delete[] currSet.adjacent;
+
+#ifdef PRUNING_BY_EQUIVALENCE_SETS
+    delete[] currSet.cell;
+    delete[] currSet.cellVertex;
+#endif
+  }
+#ifdef PRUNING_BY_EQUIVALENCE_SETS
+  delete[] posArray;
+  delete[] candArray;
+  delete[] candOffset;
+#endif
+#endif
 }
 
 inline void AllocateForQueryGraph(Graph& query) {
@@ -121,7 +231,9 @@ inline void AllocateForQueryGraph(Graph& query) {
   query.NECMapping = new int[nUniqueLabel * nQueryVertex];
   query.NECElement = new Element[nUniqueLabel * nQueryVertex];
   query.NECMap = new int[nQueryVertex];
+#ifdef LEAF_ADAPTIVE_MATCHING
   query.isProblemLeaf = new bool[nQueryVertex];
+#endif
   FAILING_SET_SIZE = (nQueryVertex + 63) >> 6;
 
   leafCandSize = nQueryVertex * maxNumDataVertex;
@@ -139,22 +251,53 @@ inline void AllocateForQueryGraph(Graph& query) {
 
   for (int i = 0; i < maxNumDataVertex; i++) vCandInfo[i].resize(nQueryVertex);
 
+#ifdef PRUNING_BY_EQUIVALENCE_SETS
   nMaxCell = maxNumCandidate;
   CELL_SIZE = ((maxNumCandidate + 63) >> 6);
+#ifdef SUBGRAPH_MATCHING
+  nActive = new int[maxNumDataVertex];
+  active = new pair<int, int>*[maxNumDataVertex];
+  unordered_map<int, int>::const_iterator lit;
+  query.maxNumSameLabelVertex = 0;
+  for (lit = query.labelFrequency.begin(); lit != query.labelFrequency.end();
+       ++lit) {
+    if (lit->second > query.maxNumSameLabelVertex)
+      query.maxNumSameLabelVertex = lit->second;
+  }
+  for (int i = 0; i < maxNumDataVertex; ++i)
+    active[i] = new pair<int, int>[query.maxNumSameLabelVertex];
+#endif
+#endif
   for (int i = 0; i < nQueryVertex; i++) {
     element[i].failingSet = new uint64_t[FAILING_SET_SIZE];
+#ifdef PRUNING_BY_EQUIVALENCE_SETS
     element[i].conflictCell = new uint64_t[CELL_SIZE]();
-    element[i].isPruned = new bool[maxNumCandidate]();
+    element[i].isPruned = new bool[maxNumCandidate]();  // TODO. to maxDegree
     element[i].nPruned = 0;
     element[i].pruned = new int[maxNumCandidate];
+#ifdef SUBGRAPH_MATCHING
+    element[i].nonConflictCell = new uint64_t[CELL_SIZE]();
+    element[i].neverVisited = new bool[maxNumCandidate]();  // TODO. to
+                                                            // maxDegree
+    element[i].nFoundMatch = new double[maxNumCandidate]();
+#endif
+#endif
+#ifdef LEAF_ADAPTIVE_MATCHING
     element[i].problemChild = new int[query.maxDegree];
     element[i].nProblemChild = 0;
+#endif
+#ifdef CANDIDATE_VERTEX_WITH_MAX
+    element[i].isVisited = new bool[maxNumCandidate]();  // TODO. to maxDegree
+#endif
     for (int j = 0; j < MAX_QUERY_DEGREE; j++) iec[i][j] = new int[maxDegree];
     if (useFailingSet) ancestors[i] = new uint64_t[FAILING_SET_SIZE];
   }
 
   // For BuildDAG
   for (int i = 0; i < nQueryVertex; i++) {
+#ifdef NEIGHBOR_LABEL_FREQUENCY
+    NLFArray[i] = new pair<int, int>[query.degree[i]];
+#endif
     DAG_parent_query[i] = new int[query.maxDegree];
   }
   for (int i = 0; i < nQueryVertex; i++) {
@@ -169,6 +312,7 @@ inline void AllocateForQueryGraph(Graph& query) {
     currSet.weight = new long long[maxNumCandidate];
     currSet.nAdjacent = new int*[query.maxDegree];
     currSet.adjacent = new int**[query.maxDegree];
+#ifdef N_OPTIMIZATION
     currSet.capacity = new int*[query.maxDegree];
     for (int k = 0; k < query.maxDegree; ++k) {
       currSet.nAdjacent[k] = new int[maxNumCandidate];
@@ -176,31 +320,47 @@ inline void AllocateForQueryGraph(Graph& query) {
       currSet.capacity[k] = new int[maxNumCandidate];
       memset(currSet.capacity[k], 0, sizeof(int) * maxNumCandidate);
     }
+#else
+    currSet.nParentCand = new int[query.maxDegree];
+    memset(currSet.nParentCand, 0, sizeof(int) * query.maxDegree);
+#endif
+#ifdef PRUNING_BY_EQUIVALENCE_SETS
     currSet.cell = new int[maxNumCandidate];
     currSet.cellVertex = new int[maxNumCandidate];
+#endif
   }
+#ifdef PRUNING_BY_EQUIVALENCE_SETS
   posArray = new int[maxNumCandidate];
   candArray = new int[maxNumCandidate];
   candOffset = new int[maxNumCandidate];
-}
-
-inline void Deallocate(Graph& query) {
-  delete[] query.NECMapping;
-  delete[] query.NECElement;
-  delete[] query.NECMap;
-  delete[] query.isProblemLeaf;
+#endif
 }
 
 inline void SetQueryGraphResource(Graph& query) {
+#ifdef PRUNING_BY_EQUIVALENCE_SETS
   globalCellID = 1;
   cellToID.clear();
+#ifdef SUBGRAPH_MATCHING
+  nMatch = 0;
+  memset(nActive, 0, sizeof(int) * maxNumDataVertex);
+#ifdef MULTIPLE_QUERIES
+  lastQuotient = 0;
+  cellPos.clear();
+  cellList.clear();
+#endif
+  cellPos.push_back(0);
+#else
   cellPos[0] = 0;
+#endif
+#endif
   memset(visitedForQuery, 0, sizeof(char) * nQueryVertex);
   memset(cntLabel, 0, sizeof(int) * nUniqueLabel);
   for (int u = 0; u < nQueryVertex; ++u) {
     candSpace[u].size = 0;
+#ifdef PRUNING_BY_EQUIVALENCE_SETS
     candSpace[u].nCellVertex = 0;
     memset(candSpace[u].cell, -1, sizeof(int) * maxNumCandidate);
+#endif
   }
 }
 
