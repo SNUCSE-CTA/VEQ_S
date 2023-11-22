@@ -16,12 +16,24 @@ inline bool BuildCS() {
   BuildDAG(*currQ);
   // 1st refinement without neighbor-safety
   if (!TopDownInitial(*currQ, *currG)) return false;
+#ifdef SIGMOD_DAF  // DAF
+  if (!BottomUp(*currQ, *currG)) return false;
+  if (!TopDown(*currQ, *currG)) return false;
+  ConstructAdjacencyList(*currQ, *currG, false);
+#else  // VEQ
+#ifdef SUBGRAPH_MATCHING
+  // Neighbor-safety in the 2nd refinement for subgraph matching
+  if (!filteringWithDAG(*currQ, *currG, bottomUp, childNgb, true)) return false;
+#else
   // Neighbor-safety in the 2nd refinement for subgraph search
   if (!filteringWithDAG(*currQ, *currG, bottomUp, childNgb, false))
     return false;
+#endif
   // Neighbor-safety in the 3rd refinement
   if (!filteringWithDAG(*currQ, *currG, topDown, parentNgb, true)) return false;
   if (!ConstructAdjacencyList(*currQ, *currG, true)) return false;
+#endif
+
   return true;
 }
 
@@ -45,27 +57,55 @@ inline void ProcessQuery() {
         break;
       }
     }
+#ifdef MULTIPLE_QUERIES
+    cout << "*Processing q" << x << "(|V|: " << currQ->nVertex << ")" << endl;
+#endif
     for (int y = 0; y < dataGraph.size(); ++y) {
       SetQueryGraphResource(*currQ);
       currG = dataGraph[y];
-      // CS filtering
+#ifdef MAPPING_FUNCTION_LOG
+      cout << "Processing g" << y << "(|V|: " << currG->nVertex << ")" << endl;
+#endif
+      startPoint = GetClock();
+
       startClock = GetClock();
       isCandidate = BuildCS();
       endClock = GetClock();
       filteringTime += TimeDiffInMilliseconds(startClock, endClock);
       if (!isCandidate) continue;
       ++nCandidate;
-      // Backtracking
+#ifdef SUBGRAPH_MATCHING
+      ComputeAuxiliaryDataStructureSize();
+      cout << "Sum of |C(u)|: " << auxDataStructureSize << endl;
+#endif
+#ifdef FILTERING_ONLY
+#else
       startClock = GetClock();
+#ifdef SIGMOD_DAF
+      if (usePathSizeOrder) InitializeWeight(*currQ);
+#endif
       Backtrack(*currQ, *currG, y);
       endClock = GetClock();
       verificationTime += TimeDiffInMilliseconds(startClock, endClock);
+#endif
+#ifdef SPLIT_RECURSIVE_CALLS
+      cout << "Recursive calls(g" << y << "): " << recursiveCallCountPerGraph
+           << endl;
+#endif
     }
+#ifdef MULTIPLE_QUERIES
+    cout << "Exceeded Time Limit: " << (exceedTimeLimit ? 1 : 0) << endl;
+    Deallocate(*currQ);
+#endif
     totalTime = filteringTime + verificationTime;
     cout << "Total Recursive Call Count: " << recursiveCallCount << endl;
+#ifdef SUBGRAPH_MATCHING
+    cout << "Number of Matches: " << doubleToString(nMatch) << endl;
+#else
     cout << "Number of Candidate Graphs: " << nCandidate << endl;
     cout << "Number of Answer Graphs: " << nMatch << endl;
     writeAnswer(answerFile);
+#endif
     cout << "Filtering Time (ms): " << filteringTime << endl;
     cout << "Verification Time (ms): " << verificationTime << endl;
     cout << "Processing Time (ms): " << totalTime << endl;
