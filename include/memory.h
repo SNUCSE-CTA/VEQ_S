@@ -67,6 +67,8 @@ long long int recursiveCallCount = 0;
 long long int recursiveCallCountPerGraph;
 bool* answer;
 
+long long int quotient, lastQuotient;
+
 inline void AllocateForDataGraph() {
 #ifdef FILTERING_BY_NEIGHBOR_SAFETY
 #ifdef HUGE_GRAPH

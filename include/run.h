@@ -33,7 +33,6 @@ inline bool BuildCS() {
   if (!filteringWithDAG(*currQ, *currG, topDown, parentNgb, true)) return false;
   if (!ConstructAdjacencyList(*currQ, *currG, true)) return false;
 #endif
-
   return true;
 }
 
