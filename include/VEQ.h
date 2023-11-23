@@ -14,7 +14,6 @@ using namespace std;
 // Elapsed time variable used in the main function
 bool exceedTimeLimit;
 chrono::high_resolution_clock::time_point startPoint, endPoint;
-long long int quotient, lastQuotient;
 double elapsedTime;
 const double timeLimit = 600000;
 double filteringTime;
