@@ -377,7 +377,9 @@ inline void initialize(vector<Graph*>& dataGraph, vector<Graph*>& queryGraph) {
   recursiveCallCount = 0;
 
   // process.h
+#ifdef PRUNING_BY_EQUIVALANCE_SETS
   globalCellID = 1;
+#endif
   maxNumCandidate = 0;
   maxDegree = 0;
   maxNumDataVertex = 0;
@@ -386,7 +388,8 @@ inline void initialize(vector<Graph*>& dataGraph, vector<Graph*>& queryGraph) {
   // util.h
   labelID = -1;
   FAILING_SET_SIZE = ((MAX_NUM_VERTEX + 63) >> 6);
-  // Variables for filtering by neighbor safety
+// Variables for filtering by neighbor safety
+#ifdef FILTERING_BY_NEIGHBOR_SAFETY
   on = false;
   index_vis_color = 0;
   index_set_color = 0;
@@ -394,6 +397,7 @@ inline void initialize(vector<Graph*>& dataGraph, vector<Graph*>& queryGraph) {
   index_ngb_existence = 0;
   s1 = 0;
   s2 = 0;
+#endif
 
   // data graph and query graph
   leafCand.clear();
@@ -406,10 +410,14 @@ inline void initialize(vector<Graph*>& dataGraph, vector<Graph*>& queryGraph) {
 
   for (int i = 0; i < nQueryVertex; i++) {
     delete[] element[i].failingSet;
+#ifdef PRUNING_BY_EQUIVALANCE_SETS
     delete[] element[i].conflictCell;
     delete[] element[i].isPruned;
     delete[] element[i].pruned;
+#endif
+#ifdef LEAF_ADAPTIVE_MATCHING
     delete[] element[i].problemChild;
+#endif
     for (int j = 0; j < MAX_QUERY_DEGREE; j++) delete[] iec[i][j];
     if (useFailingSet) delete[] ancestors[i];
   }
@@ -431,18 +439,25 @@ inline void initialize(vector<Graph*>& dataGraph, vector<Graph*>& queryGraph) {
     for (int k = 0; k < queryGraph[0]->maxDegree; ++k) {
       delete[] currSet.nAdjacent[k];
       delete[] currSet.adjacent[k];
+#ifdef N_OPTIMIZATION
       delete[] currSet.capacity[k];
+#endif
     }
+#ifdef N_OPTIMIZATION
     delete[] currSet.capacity;
+#endif
     delete[] currSet.nAdjacent;
     delete[] currSet.adjacent;
-
+#ifdef PRUNING_BY_EQUIVALANCE_SETS
     delete[] currSet.cell;
     delete[] currSet.cellVertex;
+#endif
   }
+#ifdef PRUNING_BY_EQUIVALENCE_SETS
   delete[] posArray;
   delete[] candArray;
   delete[] candOffset;
+#endif
 
   for (Graph* graphPtr : dataGraph) Deallocate(*graphPtr);
   for (Graph* graphPtr : queryGraph) Deallocate(*graphPtr);
