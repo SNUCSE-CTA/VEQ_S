@@ -37,7 +37,7 @@ int index_vis_color = 0;
 int index_set_color = 0;
 int index_vis_adj = 0;
 int index_ngb_existence = 0;
-int** cand_adj_label;
+int** adj_vertex_count;
 int** adj_label_count;
 unordered_map<int, int>* ngb_base;
 int** ngb_offset;
