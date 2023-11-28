@@ -1,6 +1,8 @@
 CXX := g++
 CXXFLAGS := -std=c++14 -march=native -flto -O3 -w -DNDEBUG
 CPPFLAGS := -Iinclude
+CPPTESTFLAGS := -TEST
+EXTRAFLAGS := -DDYNAMIC_ORDERING -DFILTERING_BY_NEIGHBOR_SAFETY -DLEAF_ADAPTIVE_MATCHING -DN_OPTIMIZATION -DPRUNING_BY_EQUIVALENCE_SETS -DSUBGRAPH_MATCHING -DMULTIPLE_QUERIES
 TEST_LIBS := -lgtest -lpthread
 
 SRC := src
@@ -29,7 +31,7 @@ TESTP := test_run
 all: $(VEQ_S)
 
 $(VEQ_S): $(SRC)/main.cpp
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c $(SRC)/main.cpp -o $(SRC)/main.o
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(EXTRAFLAGS) -c $(SRC)/main.cpp -o $(SRC)/main.o
 	$(CXX) $(CXXFLAGS) $(SRC)/main.o -o $@
 
 $(SRC)/%.o: $(SRC)/%.cpp
@@ -39,7 +41,7 @@ $(TESTP): $(LIBGI) $(TEST_OBJS)
 	$(CXX) -o $(TESTP) $(TEST_OBJS) $(LIBGI) $(TEST_LIBS)
 
 $(TEST_SRC)/%.o: $(TEST_SRC)/%.cpp
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(CPPTESTFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(CPPTESTFLAGS) $(EXTRAFLAGS) -c $< -o $@
 
 clean:
 	$(RM) -rv $(VEQ_S)
@@ -47,7 +49,8 @@ clean:
 	$(RM) -rv $(ALL_TEST_OBJS) $(TESTP)
 
 run: $(VEQ_S)
-	./$(VEQ_S) -dg graph/data/COLLAB.gfu -qg graph/query/COLLAB/randomwalk/8/q30.gfu
+	# ./$(VEQ_S) -dg graph/data/COLLAB.gfu -qg graph/query/COLLAB/randomwalk/8/q30.gfu
+	./$(VEQ_S) -dg test_data.gfu -qg test_query.gfu
 
 test: $(TESTP)
 	./$(TESTP)
