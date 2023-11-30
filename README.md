@@ -1,8 +1,8 @@
-# VEQs
+# VEQ
 ## 1. Background and Objectives
 Our research team has developed an algorithm that is over 400 times faster than the previous state-of-the-art algorithms for the subgraph query processing problem. We presented this algorithm at SIGMOD, which is one of the top computer science conferences. As a result of this research, we have received inquiries and requests for code sharing from researchers at prestigious universities overseas. Additionally, a startup in the field of drug development, Inc. AIgenDrug, has also requested code sharing.  
   
-Therefore, the goal of this project is to refine the source code of VEQs, which is the world's top-performing algorithm for the subgraph query processing problem, and make it publicly available as a library for more convenient use.
+Therefore, the goal of this project is to refine the source code of VEQ, which is the world's top-performing algorithm for the subgraph query processing and subgraph matching, and make it publicly available as a library for more convenient use.
 
 ## 2. Development Environment and Programming Language
 Programming Language:
@@ -21,7 +21,7 @@ During program execution and testing, necessary functionalities are provided by 
 *Figure 1. ProcessQuery execution process in main and associated header file structure*
 
 ## 4. Key Features of the Project
-The VEQs algorithm utilizes static equivalence, dynamic equivalence, and neighbor-safety to significantly enhance query processing performance and enable efficient search on large-scale data graphs.
+The VEQ algorithm utilizes static equivalence, dynamic equivalence, and neighbor-safety to significantly enhance query processing performance and enable efficient search on large-scale data graphs.
 
 ### 4.1. Subgraph Query Processing Problem
 The subgraph query processing problem involves finding all data graphs that contain subgraphs isomorphic to a given query graph among multiple data graphs and one query graph. For example, in Figure 2, given a set of data graphs $D=\{G_1, G_2\}$ and a query graph $q$, $G_1$ contains a subgraph isomorphic to $q$, but $G_2$ does not. Therefore, the answer is $\{G_1\}$.
@@ -29,8 +29,8 @@ The subgraph query processing problem involves finding all data graphs that cont
 ![Example of Subgraph Query Processing Problem](https://github.com/SNUCSE-CTA/VEQ_S/assets/83649602/fb8b4d4d-bc01-44d5-9204-b630bf2efd87)  
 *Figure 2. Example of the Subgraph Query Processing Problem*
 
-### 4.2. Overview of the VEQs Algorithm
-VEQs [1, 2] follows the filtering-verification approach and consists of three stages: (1) Building a query DAG, (2) Building Candidate Space (CS), and (3) Matching.
+### 4.2. Overview of the VEQ Algorithm
+VEQ [1, 2] follows the filtering-verification approach and consists of three stages: (1) Building a query DAG, (2) Building Candidate Space (CS), and (3) Matching.
 
 #### 4.2.1. Building a query DAG
 In this stage, a query DAG $q_d$ is created by assigning directions to edges of the query graph $q$. The vertex in $q$ with an infrequent label and a large degree is selected as the root, and a breadth-first search is performed starting from the root. During this process, neighbor equivalence classes are found for every vertex with degree 1, and vertices belonging to the same neighbor equivalence class are merged into one vertex.
@@ -53,13 +53,21 @@ Compile and make an executable binary
 ```bash
 make
 ```
-Run VEQs
+Run VEQs and VEQm
 ```bash
 ./VEQ_S -dg [data graph file] -qg [query graph file] -o [output file]
+./VEQ_M -dg [data graph file] -qg [query graph file]
 ```
-Run VEQs using example data and query
+(Example)
 ```bash
-make run
+./VEQ_S -dg graph/search/data/COLLAB.gfu -qg graph/search/query/COLLAB/bfs/8/q0.gfu
+./VEQ_M -dg graph/matching/data/yeast.gfu -qg graph/matching/query/yeast/sparse/50/q0.gfu
+```
+
+Run VEQs and VEQm using example data and query
+```bash
+make run1
+make run2
 ```
 Run tests
 ```bash

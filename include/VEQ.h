@@ -2161,7 +2161,7 @@ void updateAncestors(int uCurr) {
   }
 }
 
-int updateMappingQueryVer(int uCurr, int depth, int& uPPos,
+void updateMappingQueryVer(int uCurr, int depth, int& uPPos,
                           const CandidateSpace* currSet) {
   isMapped[uCurr] = true;
 #ifdef PRUNING_BY_EQUIVALENCE_SETS

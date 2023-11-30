@@ -4,8 +4,8 @@
 #include "config.h"
 using namespace std;
 
-int* cntLabel;
-int* positiveLabel;
+int* cntLabel = nullptr;
+int* positiveLabel = nullptr;
 
 struct pairHash {
   size_t operator()(const pair<int, int>& p) const {
@@ -14,10 +14,10 @@ struct pairHash {
 };
 
 struct Element {
-  int label;
-  int parentID;
-  int representative;
-  int sum;
+  int label = 0;
+  int parentID = 0;
+  int representative = 0;
+  int sum = 0;
   Element() {}
   Element(int label, int parentID, int representative) {
     this->label = label;
@@ -29,7 +29,7 @@ struct Element {
 #ifdef EDGE_LABEL
 class PairArray {
  public:
-  pair<int, int>* arr;
+  pair<int, int>* arr = nullptr;
   PairArray() {}
   PairArray(int size) { arr = new pair<int, int>[size]; }
   inline int operator[](const int idx) const { return arr[idx].first; }
@@ -40,29 +40,29 @@ class PairArray {
 #endif
 class Graph {
  public:
-  number_type nVertex;
-  number_type nEdge;
-  int nLabel;
-  int maxDegree;
-  int* label;
+  number_type nVertex = 0;
+  number_type nEdge = 0;
+  int nLabel = 0;
+  int maxDegree = 0;
+  int* label = 0;
 #ifdef EDGE_LABEL
   PairArray nbr;
 #else
-  int* nbr;
+  int* nbr = 0;
 #endif
-  number_type* nbrOffset;
-  int* degree;
+  number_type* nbrOffset = nullptr;
+  int* degree = nullptr;
   // int* vSortedByLabelDegree;
   // int* degreeArray;
   // pair<int, int>* posLabel;
-  int* vertex;
-  int* vertexOffset;
-  int* maxNbrDegree;
+  int* vertex = nullptr;
+  int* vertexOffset = nullptr;
+  int* maxNbrDegree = nullptr;
 #ifdef NEIGHBOR_LABEL_FREQUENCY
-  unordered_map<int, int>* NLF;
+  unordered_map<int, int>* NLF = nullptr;
 #else
   // int* NLF;
-  uint64_t* NLF;
+  uint64_t* NLF = nullptr;
 #endif
   unordered_map<int, int> labelFrequency;
 #ifdef HUGE_GRAPH
@@ -73,21 +73,21 @@ class Graph {
   // int* labelToNbrOffset;
 
   // Only for a data graph
-  int mostFrequentLabelID;
-  int maxNumSameLabelVertex;
+  int mostFrequentLabelID = 0;
+  int maxNumSameLabelVertex = 0;
 
   // Only for a query graph
-  int nNonLeaf;
-  int* core;
-  int* NECMapping;
-  Element* NECElement;
-  int* NECMap;
-  int numNECMapping;
+  int nNonLeaf = 0;
+  int* core = nullptr;
+  int* NECMapping = nullptr;
+  Element* NECElement = nullptr;
+  int* NECMap = nullptr;
+  int numNECMapping = 0;
 #ifdef LEAF_ADAPTIVE_MATCHING
-  bool* isProblemLeaf;
+  bool* isProblemLeaf = nullptr;
 #endif
   // Only for tests
-  bool fail;
+  bool fail = 0;
 
   Graph() {
     nVertex = 0;
@@ -119,11 +119,11 @@ class Graph {
 
   inline void initVertex(const number_type n) {
     nVertex = n;
-    label = new int[nVertex];
-    nbrOffset = new number_type[nVertex + 1];
-    core = new int[nVertex];
+    label = new int[nVertex]();
+    nbrOffset = new number_type[nVertex + 1]();
+    core = new int[nVertex]();
     degree = new int[nVertex]();
-    vertex = new int[nVertex];
+    vertex = new int[nVertex]();
     maxNbrDegree = new int[nVertex]();
   }
 
@@ -132,7 +132,7 @@ class Graph {
 #ifdef EDGE_LABEL
     nbr = PairArray(nEdge * 2);
 #else
-    nbr = new int[nEdge * 2];
+    nbr = new int[nEdge * 2]();
 #endif
   }
 
@@ -299,8 +299,8 @@ class Graph {
 
 // Variables for buildling CS
 struct CandidateSpace {
-  int size;         // the size for both path and candidates
-  int* candidates;  // candidate set
+  int size = 0;         // the size for both path and candidates
+  int* candidates = nullptr;  // candidate set
   int*** adjacent =
       NULL;  // adjacent[i][j] = candidates of this unit when the i-th parent,
              // regarding DAG, mapped to the j-th candidate of the parent.
@@ -319,8 +319,8 @@ struct CandidateSpace {
 #endif
   long long* weight = NULL;
 #ifdef PRUNING_BY_EQUIVALENCE_SETS
-  int* cell;
-  int* cellVertex;
-  int nCellVertex;
+  int* cell = nullptr;
+  int* cellVertex = nullptr;
+  int nCellVertex = 0;
 #endif
 };

@@ -41,7 +41,7 @@ const bool usePathSizeOrder = false;
 #endif
 #endif
 const bool useFailingSet = true;
-bool isTree;
+bool isTree = false;
 
 int NLFSize = -1;
 int nUniqueLabel = 0;

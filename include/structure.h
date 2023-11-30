@@ -157,7 +157,7 @@ struct Queue {
 
   void add_nInserted(int depth) { this->nInserted[depth]++; }
 
-  int set_optWeight(int optWeight) { this->optWeight = optWeight; }
+  int set_optWeight(int optWeight) { return this->optWeight = optWeight; }
 
-  int set_minPosition(int minPosition) { this->minPosition = minPosition; }
+  int set_minPosition(int minPosition) { return this->minPosition = minPosition; }
 };

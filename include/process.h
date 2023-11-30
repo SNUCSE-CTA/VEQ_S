@@ -34,7 +34,8 @@ vector<Graph*> queryGraph;
 int* mapTo;
 bool isMapped[MAX_NUM_VERTEX];
 #ifdef PRUNING_BY_EQUIVALENCE_SETS
-int order[MAX_NUM_VERTEX];
+int __order[MAX_NUM_VERTEX+1];
+int* order = __order + 1;
 #ifdef SUBGRAPH_MATCHING
 int* nActive;
 pair<int, int>** active;
