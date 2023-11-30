@@ -10,7 +10,7 @@ OBJ := obj
 TEST_SRC := tests
 
 SRCS=$(wildcard $(SRC)/*.cpp)
-OBJS=$(SRCS:$(SRC)/%.cpp=$(SRC)/%.o)
+OBJS=$(wildcard $(SRC)/*.o)
 
 DEFAULT_TEST_SRCS=$(addprefix $(TEST_SRC)/, test_main.cpp test_compare.cpp)
 CI_TEST_SRCS=$(addprefix $(TEST_SRC)/, test_main.cpp test_readGraph.cpp)
@@ -32,8 +32,8 @@ TESTP := test_run
 all: $(VEQ_S) $(VEQ_M)
 
 $(VEQ_S): $(SRC)/main.cpp
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(EXTRAFLAGS) -c $(SRC)/main.cpp -o $(SRC)/main.o
-	$(CXX) $(CXXFLAGS) $(SRC)/main.o -o $@
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(EXTRAFLAGS) -c $(SRC)/main.cpp -o $(SRC)/main_search.o
+	$(CXX) $(CXXFLAGS) $(SRC)/main_search.o -o $@
 
 $(VEQ_M): $(SRC)/main.cpp
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(EXTRAFLAGS) -DSUBGRAPH_MATCHING -c $(SRC)/main.cpp -o $(SRC)/main_matching.o

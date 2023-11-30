@@ -23,14 +23,20 @@ inline bool BuildCS() {
 #else  // VEQ
 #ifdef SUBGRAPH_MATCHING
   // Neighbor-safety in the 2nd refinement for subgraph matching
-  if (!filteringWithDAG(*currQ, *currG, bottomUp, childNgb, true)) return false;
+  buildNbrSafetyStructure(*currQ, *currG);
+  if (!filteringWithDAG(*currQ, *currG, bottomUp, childNgb, true)) {
+    FreeNbrSafetyStructure(currG->nVertex);
+    return false;
+  }
 #else
   // Neighbor-safety in the 2nd refinement for subgraph search
   if (!filteringWithDAG(*currQ, *currG, bottomUp, childNgb, false))
     return false;
 #endif
   // Neighbor-safety in the 3rd refinement
+#ifndef SUBGRAPH_MATHCING
   buildNbrSafetyStructure(*currQ, *currG);
+#endif
   if (!filteringWithDAG(*currQ, *currG, topDown, parentNgb, true)) {
     FreeNbrSafetyStructure(currG->nVertex);
     return false;
