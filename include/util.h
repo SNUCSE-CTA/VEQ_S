@@ -18,7 +18,11 @@ double PRE_COMPUTED_PERMUTATION;
 int candPos[MAX_NUM_VERTEX];
 int currMapping[MAX_NUM_VERTEX];
 int nMappedParent[MAX_NUM_VERTEX];
+#ifdef QUERY_VERTEX_WITH_MAX
+weight_type WEIGHT_MIN = LLONG_MIN;
+#else
 weight_type WEIGHT_MAX = LLONG_MAX;
+#endif
 int* iec[MAX_NUM_VERTEX][MAX_QUERY_DEGREE];
 int iecSize[MAX_NUM_VERTEX][MAX_QUERY_DEGREE];
 
@@ -27,10 +31,13 @@ int FAILING_SET_SIZE = ((MAX_NUM_VERTEX + 63) >> 6);
 uint64_t* ancestors[MAX_NUM_VERTEX];
 bool isRedundant;
 // Variables for pruning by equivalence sets
+#ifdef PRUNING_BY_EQUIVALENCE_SETS
 int CELL_SIZE;
 int nMaxCell;
+#endif
 
 // Variables for filtering by neighbor safety
+#ifdef FILTERING_BY_NEIGHBOR_SAFETY
 using lint = long long;
 bool on = false;
 int index_vis_color = 0;
@@ -70,6 +77,7 @@ int num_ngb_existence[DATAV][2] = {
 lint cnt_included_cs[DATAV] = {
     0,
 };
+#endif
 #endif
 
 inline long long getWeightExtendable(int u) {
@@ -124,43 +132,14 @@ inline bool sortPairsByWeight(const pair<long long, long long>& p1,
                               const pair<long long, long long>& p2) {
   return p1.second < p2.second;
 }
-inline int partitionByNeighbor(int arr[], int uPos, int nbr, int nbrPos,
-                               int low, int high) {
-  int i = low - 1;
-  for (int j = low; j < high; ++j) {
-    bool exist = false;
-    while (posArray[arr[j]] < candSpace[nbr].nAdjacent[uPos][arr[j]] &&
-           candSpace[nbr].adjacent[uPos][arr[j]][posArray[arr[j]]] == nbrPos) {
-      exist = true;
-      ++posArray[arr[j]];
-    }
-    if (exist) swap(arr[++i], arr[j]);
-  }
-  return (i + 1);
-}
-inline void sortByNeighbor(int arr[], int index, int uPos, int nbr, int nbrPos,
-                           int low, int high) {
-  if (nbrPos >= candSpace[nbr].size) {
-    ++index;
-    if (index >= DAG_ngb_query_size[uI]) return;
-    nbr = DAG_ngb_query[uI][index];
-    while (currQ->NECMap[nbr] != -1 && currQ->NECMap[nbr] != nbr) {
-      ++index;
-      if (index >= DAG_ngb_query_size[uI]) return;
-      nbr = DAG_ngb_query[uI][index];
-    }
-    uPos = DAG_ngb_query_ngb_index[uI][index];
 
-    nbrPos = 0;
-    for (int x = low; x < high; ++x) posArray[arr[x]] = 0;
-  }
-  int pivot = partitionByNeighbor(arr, uPos, nbr, nbrPos, low, high);
-  if (pivot > low && pivot < high) candOffset[nCandOffset++] = pivot;
-  if (pivot - low > 1)
-    sortByNeighbor(arr, index, uPos, nbr, nbrPos + 1, low, pivot);
-  if (high - pivot > 1)
-    sortByNeighbor(arr, index, uPos, nbr, nbrPos + 1, pivot, high);
+#ifdef SUBGRAPH_MATCHING
+inline string doubleToString(double value) {
+  string strVal = to_string(value);
+  int pos = strVal.find_first_of(".");
+  return strVal.substr(0, pos);
 }
+#endif
 
 inline double factorization(int x) {
   switch (x) {
