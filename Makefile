@@ -2,7 +2,7 @@ XX := g++
 CXXFLAGS := -std=c++14 -flto -march=native -O3 -w -DNDEBUG
 CPPFLAGS := -Iinclude
 CPPTESTFLAGS := -TEST
-EXTRAFLAGS := -DDYNAMIC_ORDERING -DFILTERING_BY_NEIGHBOR_SAFETY -DLEAF_ADAPTIVE_MATCHING -DN_OPTIMIZATION -DPRUNING_BY_EQUIVALENCE_SETS #-DSUBGRAPH_MATCHING
+EXTRAFLAGS := -DDYNAMIC_ORDERING -DFILTERING_BY_NEIGHBOR_SAFETY -DLEAF_ADAPTIVE_MATCHING -DN_OPTIMIZATION -DPRUNING_BY_EQUIVALENCE_SETS
 TEST_LIBS := -lgtest -lpthread
 
 SRC := src
@@ -10,7 +10,7 @@ OBJ := obj
 TEST_SRC := tests
 
 SRCS=$(wildcard $(SRC)/*.cpp)
-OBJS=$(SRCS:$(SRC)/%.cpp=$(SRC)/%.o)
+OBJS=$(wildcard $(SRC)/*.o)
 
 DEFAULT_TEST_SRCS=$(addprefix $(TEST_SRC)/, test_main.cpp test_compare.cpp)
 CI_TEST_SRCS=$(addprefix $(TEST_SRC)/, test_main.cpp test_readGraph.cpp)
@@ -32,8 +32,8 @@ TESTP := test_run
 all: $(VEQ_S) $(VEQ_M)
 
 $(VEQ_S): $(SRC)/main.cpp
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(EXTRAFLAGS) -c $(SRC)/main.cpp -o $(SRC)/main.o
-	$(CXX) $(CXXFLAGS) $(SRC)/main.o -o $@
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(EXTRAFLAGS) -c $(SRC)/main.cpp -o $(SRC)/main_search.o
+	$(CXX) $(CXXFLAGS) $(SRC)/main_search.o -o $@
 
 $(VEQ_M): $(SRC)/main.cpp
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(EXTRAFLAGS) -DSUBGRAPH_MATCHING -c $(SRC)/main.cpp -o $(SRC)/main_matching.o
@@ -54,10 +54,10 @@ clean:
 	$(RM) -rv $(OBJS)
 	$(RM) -rv $(ALL_TEST_OBJS) $(TESTP)
 
-run1: $(VEQ_S)
+runs: $(VEQ_S)
 	./$(VEQ_S) -dg graph/search/data/COLLAB.gfu -qg graph/search/query/COLLAB/randomwalk/8/q30.gfu
 
-run2: $(VEQ_M)
+runm: $(VEQ_M)
 	./$(VEQ_M) -dg graph/matching/data/yeast.gfu -qg graph/matching/query/yeast/sparse/50/q30.gfu
 
 test: $(TESTP)

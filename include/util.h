@@ -1,5 +1,7 @@
 #include <limits.h>  // for LLONG_MAX which is 9223372036854775807
 
+#include <unordered_map>
+
 #include "process.h"
 using namespace std;
 
@@ -42,6 +44,11 @@ int index_vis_color = 0;
 int index_set_color = 0;
 int index_vis_adj = 0;
 int index_ngb_existence = 0;
+int** adj_vertex_count;
+int** adj_label_count;
+unordered_map<int, int>* ngb_base;
+unordered_map<int, int>* ngb_offset;
+unordered_map<int, int>* inv_cand_index;
 double s1 = 0;
 double s2 = 0;
 #ifdef HUGE_GRAPH
