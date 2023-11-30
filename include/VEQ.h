@@ -442,11 +442,6 @@ inline bool filteringWithDAG(const Graph& query, const Graph& data,
       // 1.3.2 : filtering by cardinality
       if (isValidCand && useNbrSafety) {
         for (int y = 0; y < index_set_color; y++) {
-          iter = data.labelToNbrOffset.find(make_pair(cand_cur, set_color[y]));
-          if (iter == data.labelToNbrOffset.end()) {
-            isValidCand = false;
-            break;
-          }
           if (adj_label_count[query_node_cur]
                              [x * labelMap.size() + set_color[y]] <
               color[set_color[y]][1]) {
