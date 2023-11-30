@@ -486,10 +486,11 @@ inline bool filteringWithDAG(const Graph& query, const Graph& data,
     node_unit_cur.size = new_size;
   }
   if (useNbrSafety) {
-    int i;
+    int i = 0;
     for (i = 0; i < uSequenceSize; i++) {
       CandidateSpace& node_unit_cur = candSpace[i];
       int cand_size = node_unit_cur.size;
+      bool valid_cand = cand_size;
       for (int j = 0; j < cand_size; j++) {
         if (invalid[i][j]) {
           node_unit_cur.candidates[j] = node_unit_cur.candidates[--cand_size];
@@ -498,7 +499,7 @@ inline bool filteringWithDAG(const Graph& query, const Graph& data,
         }
       }
       delete[] invalid[i];
-      if (cand_size == 0) {
+      if (valid_cand && !cand_size) {
         break;
       } else {
         node_unit_cur.size = cand_size;
@@ -580,13 +581,13 @@ inline void buildNbrSafetyStructure(const Graph& query, const Graph& data) {
   }
 }
 
-inline void FreeNbrSafetyStructure(Graph& data) {
+inline void FreeNbrSafetyStructure(int nVertex) {
   for (int i = 0; i < uSequenceSize; i++) {
     delete[] adj_vertex_count[i];
     delete[] adj_label_count[i];
     ngb_base[i].clear();
   }
-  for (int i = 0; i < data.nVertex; i++) {
+  for (int i = 0; i < nVertex; i++) {
     ngb_offset[i].clear();
     inv_cand_index[i].clear();
   }

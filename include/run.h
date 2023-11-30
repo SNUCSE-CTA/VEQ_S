@@ -22,10 +22,10 @@ inline bool BuildCS() {
   // Neighbor-safety in the 3rd refinement
   buildNbrSafetyStructure(*currQ, *currG);
   if (!filteringWithDAG(*currQ, *currG, topDown, parentNgb, true)) {
-    FreeNbrSafetyStructure(*currG);
+    FreeNbrSafetyStructure(currG->nVertex);
     return false;
   }
-  FreeNbrSafetyStructure(*currG);
+  FreeNbrSafetyStructure(currG->nVertex);
   if (!ConstructAdjacencyList(*currQ, *currG, true)) return false;
   return true;
 }

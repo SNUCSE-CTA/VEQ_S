@@ -2,7 +2,7 @@ CXX := g++
 CXXFLAGS := -std=c++14 -march=native -flto -O3 -w -DNDEBUG
 CPPFLAGS := -Iinclude
 CPPTESTFLAGS := -TEST
-EXTRAFLAGS := -DDYNAMIC_ORDERING -DFILTERING_BY_NEIGHBOR_SAFETY -DLEAF_ADAPTIVE_MATCHING -DN_OPTIMIZATION -DPRUNING_BY_EQUIVALENCE_SETS -DSUBGRAPH_MATCHING -DMULTIPLE_QUERIES
+EXTRAFLAGS := -DDYNAMIC_ORDERING -DFILTERING_BY_NEIGHBOR_SAFETY -DLEAF_ADAPTIVE_MATCHING -DN_OPTIMIZATION -DPRUNING_BY_EQUIVALENCE_SETS
 TEST_LIBS := -lgtest -lpthread
 
 SRC := src
@@ -49,8 +49,7 @@ clean:
 	$(RM) -rv $(ALL_TEST_OBJS) $(TESTP)
 
 run: $(VEQ_S)
-	# ./$(VEQ_S) -dg graph/data/COLLAB.gfu -qg graph/query/COLLAB/randomwalk/8/q30.gfu
-	./$(VEQ_S) -dg test_data.gfu -qg test_query.gfu
+	./$(VEQ_S) -dg graph/data/COLLAB.gfu -qg graph/query/COLLAB/randomwalk/8/q30.gfu
 
 test: $(TESTP)
 	./$(TESTP)
