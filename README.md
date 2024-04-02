@@ -66,8 +66,8 @@ Run VEQs and VEQm
 
 Run VEQs and VEQm using example data and query
 ```bash
-make run1
-make run2
+make runs
+make runm
 ```
 Run tests
 ```bash

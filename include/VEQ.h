@@ -2144,7 +2144,7 @@ void updateCellInfo(int depth) {
 
   Stack& higherE = element[depth - 1];
 #ifdef SUBGRAPH_MATCHING
-  Deactivate(*currE, depth);
+  if (currE) Deactivate(*currE, depth);
   higherE.nFoundMatch[higherE.addressPos] =
       nMatch - higherE.nFoundMatch[higherE.addressPos];
 #endif
@@ -2162,7 +2162,7 @@ void updateAncestors(int uCurr) {
 }
 
 void updateMappingQueryVer(int uCurr, int depth, int& uPPos,
-                          const CandidateSpace* currSet) {
+                           const CandidateSpace* currSet) {
   isMapped[uCurr] = true;
 #ifdef PRUNING_BY_EQUIVALENCE_SETS
   order[uCurr] = depth;

@@ -36,7 +36,7 @@ $(VEQ_S): $(SRC)/main.cpp
 	$(CXX) $(CXXFLAGS) $(SRC)/main.o -o $@
 
 $(VEQ_M): $(SRC)/main.cpp
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(EXTRAFLAGS) -DSUBGRAPH_MATCHING -c $(SRC)/main.cpp -o $(SRC)/main_matching.o
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(EXTRAFLAGS) -DSUBGRAPH_MATCHING -DNEIGHBOR_LABEL_FREQUENCY -c $(SRC)/main.cpp -o $(SRC)/main_matching.o
 	$(CXX) $(CXXFLAGS) $(SRC)/main_matching.o -o $@
 
 $(SRC)/%.o: $(SRC)/%.cpp
@@ -54,10 +54,10 @@ clean:
 	$(RM) -rv $(OBJS)
 	$(RM) -rv $(ALL_TEST_OBJS) $(TESTP)
 
-run1: $(VEQ_S)
+runs: $(VEQ_S)
 	./$(VEQ_S) -dg graph/search/data/COLLAB.gfu -qg graph/search/query/COLLAB/randomwalk/8/q30.gfu
 
-run2: $(VEQ_M)
+runm: $(VEQ_M)
 	./$(VEQ_M) -dg graph/matching/data/yeast.gfu -qg graph/matching/query/yeast/sparse/50/q30.gfu
 
 test: $(TESTP)

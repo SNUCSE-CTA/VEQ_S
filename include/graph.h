@@ -95,26 +95,26 @@ class Graph {
     nLabel = 0;
     maxDegree = 0;
 
-    label = NULL;
+    label = nullptr;
 #ifdef EDGE_LABEL
 #else
-    nbr = NULL;
+    nbr = nullptr;
 #endif
-    nbrOffset = NULL;
-    core = NULL;
-    degree = NULL;
-    vertex = NULL;        // vertices sorted by labels
-    vertexOffset = NULL;  // vertexOffset[l]: the offset of the starting
-                          // position of vertices with label l
-    maxNbrDegree = NULL;
+    nbrOffset = nullptr;
+    core = nullptr;
+    degree = nullptr;
+    vertex = nullptr;        // vertices sorted by labels
+    vertexOffset = nullptr;  // vertexOffset[l]: the offset of the starting
+                             // position of vertices with label l
+    maxNbrDegree = nullptr;
 #ifdef NEIGHBOR_LABEL_FREQUENCY
 #else
-    NLF = NULL;
+    NLF = nullptr;
 #endif
-    NECMap = NULL;
+    NECMap = nullptr;
     numNECMapping = 0;
-    NECMapping = NULL;
-    NECElement = NULL;
+    NECMapping = nullptr;
+    NECElement = nullptr;
   }
 
   inline void initVertex(const number_type n) {
@@ -299,25 +299,25 @@ class Graph {
 
 // Variables for buildling CS
 struct CandidateSpace {
-  int size = 0;         // the size for both path and candidates
+  int size = 0;               // the size for both path and candidates
   int* candidates = nullptr;  // candidate set
-  int*** adjacent =
-      NULL;  // adjacent[i][j] = candidates of this unit when the i-th parent,
-             // regarding DAG, mapped to the j-th candidate of the parent.
+  int*** adjacent = nullptr;  // adjacent[i][j] = candidates of this unit when
+                              // the i-th parent, regarding DAG, mapped to the
+                              // j-th candidate of the parent.
   int** nAdjacent =
-      NULL;  // nAdjacent[i][j] = size of back_trak_index[i][j]. That is, the
-             // number of candidates of this unit when the i-th parent mapped to
-             // the j-th candidate of the parent.
+      nullptr;  // nAdjacent[i][j] = size of back_trak_index[i][j]. That is, the
+                // number of candidates of this unit when the i-th parent mapped
+                // to the j-th candidate of the parent.
 
 #ifdef N_OPTIMIZATION
-  int** capacity = NULL;
-  int** capacityNgb = NULL;
+  int** capacity = nullptr;
+  int** capacityNgb = nullptr;
 #else
   int* nParentCand =
-      NULL;  // nParentCand[i] = the number of candidates of the i-th parent.
-  int* nNgbCand = NULL;
+      nullptr;  // nParentCand[i] = the number of candidates of the i-th parent.
+  int* nNgbCand = nullptr;
 #endif
-  long long* weight = NULL;
+  long long* weight = nullptr;
 #ifdef PRUNING_BY_EQUIVALENCE_SETS
   int* cell = nullptr;
   int* cellVertex = nullptr;
